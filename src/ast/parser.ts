@@ -28,7 +28,7 @@ const GRAMMAR_MAP: Record<string, string> = {
   java: 'tree-sitter-java.wasm',
   c: 'tree-sitter-cpp.wasm',  // C uses cpp grammar (compatible)
   cpp: 'tree-sitter-cpp.wasm',
-  csharp: 'tree-sitter-c_sharp.wasm'
+  csharp: 'tree-sitter-c-sharp.wasm'
 };
 
 /**
