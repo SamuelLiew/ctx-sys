@@ -56,7 +56,7 @@ The 2.0 cut. Reduces ctx-sys's surface area, picks defaults a laptop can actuall
 - MCP resources for entities: `ctx-sys://entity/<id>` lets agents read by URI without a tool roundtrip.
 - `ctx-sys status --json` is the canonical workspace snapshot, with a stable schema yaao can consume.
 - Heuristic reranker removed. RRF over vector + FTS + graph is the final ranking; LLM reranker remains for opt-in high-quality paths. Score `[0, 1]` normalization extracted as a standalone helper and preserved.
-- `ctx-sys init` auto-registers the MCP server in project-local `.mcp.json` (default on, opt out with `--no-mcp`). `ctx-sys mcp register / unregister / status` subcommands exist for retrofitting.
+- `ctx-sys init` auto-registers the MCP server in `.mcp.json`, `.cursor/mcp.json`, `~/.codex/config.toml`, and `.github/copilot-instructions.md` (default on, opt out with `--no-mcp`, `--force` replaces a mismatched entry). Mirrors yaao's F14.2 semantics so both tools behave identically. No standalone `ctx-sys mcp` subcommand — re-running `ctx-sys init --mcp` is the canonical way to wire or re-wire MCP.
 - A repeatable release pipeline ships 2.0 via `npm publish --provenance` from a GitHub Actions workflow on tag push, with a beta period and a maintainer `RELEASING.md` checklist. F1.7 is the last feature merged; it's how 2.0 actually ships.
 
 **Out of scope for Phase 1:**
