@@ -41,6 +41,8 @@ The 2.0 cut. Reduces ctx-sys's surface area, picks defaults a laptop can actuall
 | **F1.5** | Cut the heuristic reranker | [phase-1/F1.5-cut-heuristic-reranker.md](phase-1/F1.5-cut-heuristic-reranker.md) |
 | **F1.6** | Local model UX | [phase-1/F1.6-local-model-ux.md](phase-1/F1.6-local-model-ux.md) |
 | **F1.7** | PDF extraction | [phase-1/F1.7-pdf-extraction.md](phase-1/F1.7-pdf-extraction.md) |
+| **F1.8** | MCP init integration | [phase-1/F1.8-mcp-init.md](phase-1/F1.8-mcp-init.md) |
+| **F1.9** | npm publish (ships last) | [phase-1/F1.9-npm-publish.md](phase-1/F1.9-npm-publish.md) |
 
 **Key deliverables:**
 
@@ -57,6 +59,8 @@ The 2.0 cut. Reduces ctx-sys's surface area, picks defaults a laptop can actuall
 - Heuristic reranker removed. RRF over vector + FTS + graph is the final ranking; LLM reranker remains for opt-in high-quality paths. Score `[0, 1]` normalization extracted as a standalone helper and preserved.
 - `ctx-sys setup` is a one-command bootstrap (backend detection, install, model pulls, sanity check). Multi-backend provider abstraction supports Ollama, OpenAI-compatible, OpenAI, and llama.cpp. `ctx-sys doctor` is the canonical diagnostic command.
 - PDF extraction is pluggable with three tiers (pdf-parse → pdfjs → Docling); structured markdown preserves headings, tables, lists, and reading order on multi-column documents.
+- `ctx-sys init` auto-registers the MCP server in project-local `.mcp.json` (default on, opt out with `--no-mcp`). `ctx-sys mcp register / unregister / status` subcommands exist for retrofitting.
+- A repeatable release pipeline ships 2.0 via `npm publish --provenance` from a GitHub Actions workflow on tag push, with a beta period and a maintainer `RELEASING.md` checklist. F1.8 is the last feature merged; it's how 2.0 actually ships.
 
 **Out of scope for Phase 1:**
 

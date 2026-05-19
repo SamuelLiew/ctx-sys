@@ -20,6 +20,8 @@ Phase 1 (v2) trims ctx-sys to that core, picks defaults a first-time user can ac
 | F1.5 | [Cut the heuristic reranker](F1.5-cut-heuristic-reranker.md) | Medium | Quality-affecting |
 | F1.6 | [Local model UX](F1.6-local-model-ux.md) | High | No |
 | F1.7 | [PDF extraction](F1.7-pdf-extraction.md) | Medium | No (additive) |
+| F1.8 | [MCP init integration](F1.8-mcp-init.md) | Medium | Behavioral |
+| F1.9 | [npm publish (ships last)](F1.9-npm-publish.md) | High | No |
 
 F1.0 drops 7 of the 12 MCP tools (6 conversation + `hooks`). ADRs move to plain markdown — ctx-sys's document indexer already handles them. No reframed `decision` node; no special pipeline. F1.5 cuts the hand-tuned reranker that fights RRF, keeping just the `[0, 1]` normalization. F1.6 turns first-time setup into a single command and lets ctx-sys talk to any local backend, not just Ollama. F1.7 plugs in structure-aware PDF extraction so headings and tables survive into the index.
 
@@ -36,9 +38,10 @@ Each layer owns one job. After F1.0 the overlap between ctx-sys and lean-ctx's C
 
 ## Release plan
 
-- Land F1.1, F1.2, F1.6 first — low-risk, unblock new-user onboarding. F1.6 in particular changes the day-one experience.
-- Land F1.5 (heuristic reranker cut) and F1.7 (PDF extraction) next — both are improvements with manageable blast radius and can ship independently.
-- Land F1.0 + F1.3 + F1.4 together as ctx-sys 2.0. Lockstep with a yaao point release that updates the directive (F1.3 §2) and removes the dead `hooks.ts` integration (F1.3 §3).
+- Land F1.1, F1.2, F1.6, F1.8 first — low-risk, unblock new-user onboarding. F1.6 and F1.8 in particular change the day-one experience.
+- Land F1.5 (heuristic reranker cut) and F1.7 (PDF extraction) next — improvements with manageable blast radius; can ship independently.
+- Land F1.0 + F1.3 + F1.4 together as the meat of 2.0. Lockstep with a yaao point release that updates the directive (F1.3 §2) and removes the dead `hooks.ts` integration (F1.3 §3).
+- F1.9 (npm publish) ships last — it's the release pipeline that actually cuts 2.0 once all of the above are merged. Beta cuts under dist-tag `next` along the way are fine, but the `2.0.0` tag waits.
 
 ## Relationship to v1
 
