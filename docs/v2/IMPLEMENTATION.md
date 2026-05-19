@@ -38,8 +38,9 @@ The 2.0 cut. Reduces ctx-sys's surface area, picks defaults a laptop can actuall
 | **F1.2** | Lighter default models | [phase-1/F1.2-lighter-default-models.md](phase-1/F1.2-lighter-default-models.md) |
 | **F1.3** | yaao native integration | [phase-1/F1.3-yaao-native-integration.md](phase-1/F1.3-yaao-native-integration.md) |
 | **F1.4** | MCP server polish | [phase-1/F1.4-mcp-server-polish.md](phase-1/F1.4-mcp-server-polish.md) |
-| **F1.5** | Retrieval eval suite | [phase-1/F1.5-retrieval-eval-suite.md](phase-1/F1.5-retrieval-eval-suite.md) |
-| **F1.6** | Ollama UX | [phase-1/F1.6-ollama-ux.md](phase-1/F1.6-ollama-ux.md) |
+| **F1.5** | Cut the heuristic reranker | [phase-1/F1.5-cut-heuristic-reranker.md](phase-1/F1.5-cut-heuristic-reranker.md) |
+| **F1.6** | Local model UX | [phase-1/F1.6-local-model-ux.md](phase-1/F1.6-local-model-ux.md) |
+| **F1.7** | PDF extraction | [phase-1/F1.7-pdf-extraction.md](phase-1/F1.7-pdf-extraction.md) |
 
 **Key deliverables:**
 
@@ -53,8 +54,9 @@ The 2.0 cut. Reduces ctx-sys's surface area, picks defaults a laptop can actuall
 - `--json` flag on all read-only commands with published JSON Schemas under `schema/`.
 - MCP resources for entities: `ctx-sys://entity/<id>` lets agents read by URI without a tool roundtrip.
 - `ctx-sys status --json` is the canonical workspace snapshot, with a stable schema yaao can consume.
-- A CI-gated retrieval eval suite with synthetic + realistic corpora, so model swaps, reranker tweaks, and chunker changes are measured rather than vibes-checked.
-- First-class Ollama UX: preflight checks on every Ollama-touching command, first-call loading indicator, `ctx-sys doctor` consolidates diagnostics, and every Ollama error is one actionable line.
+- Heuristic reranker removed. RRF over vector + FTS + graph is the final ranking; LLM reranker remains for opt-in high-quality paths. Score `[0, 1]` normalization extracted as a standalone helper and preserved.
+- `ctx-sys setup` is a one-command bootstrap (backend detection, install, model pulls, sanity check). Multi-backend provider abstraction supports Ollama, OpenAI-compatible, OpenAI, and llama.cpp. `ctx-sys doctor` is the canonical diagnostic command.
+- PDF extraction is pluggable with three tiers (pdf-parse → pdfjs → Docling); structured markdown preserves headings, tables, lists, and reading order on multi-column documents.
 
 **Out of scope for Phase 1:**
 
