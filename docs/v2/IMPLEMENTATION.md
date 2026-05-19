@@ -19,17 +19,18 @@ yaao         → multi-agent orchestrator (uses ctx-sys as native retrieval peer
 
 ## Phases
 
-| Phase | Focus | Features | Status |
+| Phase | Focus | Release | Status |
 | --- | --- | --- | --- |
-| 1 | Focus & Sharpen | Prune conversation memory, ignore-file defaults, lighter models, yaao integration, MCP polish | Planned (2.0.0) |
+| 1 | Focus & Sharpen | 2.0.0 | Planned |
+| 2 | Better Defaults | 2.1.0+ | Planned, post-2.0 |
 
 Additional phases will be added here as they're scoped. Each is expected to be small and improvement-flavored, not feature-driven.
 
 ---
 
-## Phase 1: Focus & Sharpen
+## Phase 1: Focus & Sharpen (2.0.0)
 
-The 2.0 cut. Reduces ctx-sys's surface area, picks defaults a laptop can actually run, and turns the MCP server into a clean composable peer.
+The 2.0 cut. Reduces ctx-sys's surface area, picks defaults a laptop can actually run, turns the MCP server into a clean composable peer, and ships the result via a proper release pipeline.
 
 | Feature | Description | Doc |
 | --- | --- | --- |
@@ -39,10 +40,8 @@ The 2.0 cut. Reduces ctx-sys's surface area, picks defaults a laptop can actuall
 | **F1.3** | yaao native integration | [phase-1/F1.3-yaao-native-integration.md](phase-1/F1.3-yaao-native-integration.md) |
 | **F1.4** | MCP server polish | [phase-1/F1.4-mcp-server-polish.md](phase-1/F1.4-mcp-server-polish.md) |
 | **F1.5** | Cut the heuristic reranker | [phase-1/F1.5-cut-heuristic-reranker.md](phase-1/F1.5-cut-heuristic-reranker.md) |
-| **F1.6** | Local model UX | [phase-1/F1.6-local-model-ux.md](phase-1/F1.6-local-model-ux.md) |
-| **F1.7** | PDF extraction | [phase-1/F1.7-pdf-extraction.md](phase-1/F1.7-pdf-extraction.md) |
-| **F1.8** | MCP init integration | [phase-1/F1.8-mcp-init.md](phase-1/F1.8-mcp-init.md) |
-| **F1.9** | npm publish (ships last) | [phase-1/F1.9-npm-publish.md](phase-1/F1.9-npm-publish.md) |
+| **F1.6** | MCP init integration | [phase-1/F1.6-mcp-init.md](phase-1/F1.6-mcp-init.md) |
+| **F1.7** | npm publish (ships last) | [phase-1/F1.7-npm-publish.md](phase-1/F1.7-npm-publish.md) |
 
 **Key deliverables:**
 
@@ -57,10 +56,8 @@ The 2.0 cut. Reduces ctx-sys's surface area, picks defaults a laptop can actuall
 - MCP resources for entities: `ctx-sys://entity/<id>` lets agents read by URI without a tool roundtrip.
 - `ctx-sys status --json` is the canonical workspace snapshot, with a stable schema yaao can consume.
 - Heuristic reranker removed. RRF over vector + FTS + graph is the final ranking; LLM reranker remains for opt-in high-quality paths. Score `[0, 1]` normalization extracted as a standalone helper and preserved.
-- `ctx-sys setup` is a one-command bootstrap (backend detection, install, model pulls, sanity check). Multi-backend provider abstraction supports Ollama, OpenAI-compatible, OpenAI, and llama.cpp. `ctx-sys doctor` is the canonical diagnostic command.
-- PDF extraction is pluggable with three tiers (pdf-parse → pdfjs → Docling); structured markdown preserves headings, tables, lists, and reading order on multi-column documents.
 - `ctx-sys init` auto-registers the MCP server in project-local `.mcp.json` (default on, opt out with `--no-mcp`). `ctx-sys mcp register / unregister / status` subcommands exist for retrofitting.
-- A repeatable release pipeline ships 2.0 via `npm publish --provenance` from a GitHub Actions workflow on tag push, with a beta period and a maintainer `RELEASING.md` checklist. F1.8 is the last feature merged; it's how 2.0 actually ships.
+- A repeatable release pipeline ships 2.0 via `npm publish --provenance` from a GitHub Actions workflow on tag push, with a beta period and a maintainer `RELEASING.md` checklist. F1.7 is the last feature merged; it's how 2.0 actually ships.
 
 **Out of scope for Phase 1:**
 
@@ -68,7 +65,28 @@ The 2.0 cut. Reduces ctx-sys's surface area, picks defaults a laptop can actuall
 - yaao journal ingestion (ctx-sys is current-state-of-code, yaao owns run history).
 - Bundled `ctx-query` skill (sharp MCP tool descriptions are sufficient).
 - MCP prompts (agents can compose their own).
-- Anything from v1 Phase 11 / Phase 12 (VS Code extension, SaaS, telemetry, auth). These are explicitly not part of v2's planned scope.
+- Multi-backend support and the `setup` / `doctor` flow — moved to Phase 2.
+- Structured PDF extraction — moved to Phase 2.
+- Anything from v1 Phase 11 / Phase 12 (VS Code extension, SaaS, telemetry, auth).
+
+---
+
+## Phase 2: Better Defaults (2.1.0+)
+
+Capability expansion on top of the stable 2.0 core. Improves the day-one experience and document quality without growing ctx-sys's MCP surface.
+
+| Feature | Description | Doc |
+| --- | --- | --- |
+| **F2.0** | Local model UX | [phase-2/F2.0-local-model-ux.md](phase-2/F2.0-local-model-ux.md) |
+| **F2.1** | PDF extraction | [phase-2/F2.1-pdf-extraction.md](phase-2/F2.1-pdf-extraction.md) |
+
+**Key deliverables:**
+
+- `ctx-sys setup` is a one-command bootstrap (backend detection, install, model pulls, sanity check).
+- Multi-backend provider abstraction supports Ollama, OpenAI-compatible (vLLM / LM Studio / llamafile / LiteLLM), OpenAI, and llama.cpp.
+- `ctx-sys doctor` is the canonical diagnostic command for "is my setup right?"
+- PDF extraction is pluggable with three tiers (pdf-parse → pdfjs → Docling); structured markdown preserves headings, tables, lists, and reading order on multi-column documents.
+- No new MCP tools. No breaking changes. F2.0 ships a config-migration shim for existing setups.
 
 ---
 
