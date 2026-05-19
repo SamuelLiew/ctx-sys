@@ -73,12 +73,13 @@ The 2.0 cut. Reduces ctx-sys's surface area, picks defaults a laptop can actuall
 
 ## Phase 2: Better Defaults (2.1.0+)
 
-Capability expansion on top of the stable 2.0 core. Improves the day-one experience and document quality without growing ctx-sys's MCP surface.
+Capability expansion on top of the stable 2.0 core. Improves the day-one experience, document quality, and git-aware behavior without growing ctx-sys's MCP surface.
 
 | Feature | Description | Doc |
 | --- | --- | --- |
 | **F2.0** | Local model UX | [phase-2/F2.0-local-model-ux.md](phase-2/F2.0-local-model-ux.md) |
 | **F2.1** | PDF extraction | [phase-2/F2.1-pdf-extraction.md](phase-2/F2.1-pdf-extraction.md) |
+| **F2.2** | Git-aware re-indexing | [phase-2/F2.2-git-aware-reindex.md](phase-2/F2.2-git-aware-reindex.md) |
 
 **Key deliverables:**
 
@@ -86,6 +87,7 @@ Capability expansion on top of the stable 2.0 core. Improves the day-one experie
 - Multi-backend provider abstraction supports Ollama, OpenAI-compatible (vLLM / LM Studio / llamafile / LiteLLM), OpenAI, and llama.cpp.
 - `ctx-sys doctor` is the canonical diagnostic command for "is my setup right?"
 - PDF extraction is pluggable with three tiers (pdf-parse → pdfjs → Docling); structured markdown preserves headings, tables, lists, and reading order on multi-column documents.
+- `post-checkout` / `post-merge` / `post-rewrite` git hooks installed by `ctx-sys init` (default on) keep the index synced with the working tree. Branch switches and pulls no longer leave retrieval silently stale. Distinct from the cut F1.0 pre-commit `hooks` feature.
 - No new MCP tools. No breaking changes. F2.0 ships a config-migration shim for existing setups.
 
 ---
