@@ -19,9 +19,10 @@ Phase 1 (v2) trims ctx-sys to that core, picks defaults a first-time user can ac
 | F1.4 | [MCP server polish](F1.4-mcp-server-polish.md) | High | No |
 | F1.5 | [Cut the heuristic reranker](F1.5-cut-heuristic-reranker.md) | Medium | Quality-affecting |
 | F1.6 | [MCP init integration](F1.6-mcp-init.md) | Medium | Behavioral |
-| F1.7 | [npm publish (ships last)](F1.7-npm-publish.md) | High | No |
 
-F1.0 drops 7 of the 12 MCP tools (6 conversation + `hooks`). ADRs move to plain markdown — ctx-sys's document indexer already handles them. No reframed `decision` node; no special pipeline. F1.5 cuts the hand-tuned reranker that fights RRF, keeping just the `[0, 1]` normalization. F1.6 makes `ctx-sys init` register the MCP server in `.mcp.json` by default. F1.7 ships 2.0 once everything else is merged.
+F1.0 drops 7 of the 12 MCP tools (6 conversation + `hooks`). ADRs move to plain markdown — ctx-sys's document indexer already handles them. No reframed `decision` node; no special pipeline. F1.5 cuts the hand-tuned reranker that fights RRF, keeping just the `[0, 1]` normalization. F1.6 makes `ctx-sys init` register the MCP server in `.mcp.json` by default.
+
+The actual `npm publish` of 2.0.0 lives in [Phase 3](../phase-3/) (F3.0). Phase 1 is the *code* cut; Phase 3 is the *ship* cut. They were one phase in earlier drafts but separating them keeps Phase 1 scoped to behavior changes and lets the release pipeline evolve independently.
 
 Local-model UX (`ctx-sys setup`, multi-backend support, `ctx-sys doctor`) and structure-aware PDF extraction were originally scoped here but moved to [Phase 2](../phase-2/) — they're capability expansion, not "Focus & Sharpen," and shouldn't block the 2.0 cut.
 
@@ -40,8 +41,8 @@ Each layer owns one job. After F1.0 the overlap between ctx-sys and lean-ctx's C
 
 - Land F1.1, F1.2, F1.6 first — low-risk, unblock new-user onboarding. F1.6 in particular changes the day-one experience.
 - Land F1.5 (heuristic reranker cut) next — small, contained, improves the retrieval pipeline.
-- Land F1.0 + F1.3 + F1.4 together as the meat of 2.0. Lockstep with a yaao point release that updates the directive (F1.3 §2) and removes the dead `hooks.ts` integration (F1.3 §3).
-- F1.7 (npm publish) ships last — it's the release pipeline that actually cuts 2.0 once all of the above are merged. Beta cuts under dist-tag `next` along the way are fine, but the `2.0.0` tag waits.
+- Land F1.0 + F1.3 + F1.4 together as the meat of 2.0. Lockstep with a yaao point release that verifies the directive stays retrieval-only (F1.3 §2) and removes the dead `hooks.ts` integration (F1.3 §3).
+- Once all of F1.0–F1.6 are merged, [Phase 3](../phase-3/) (F3.0) cuts the `2.0.0` tag. Beta cuts under dist-tag `next` (e.g., `2.0.0-beta.1` after F1.0 + F1.4 land) are part of Phase 3's beta window, not Phase 1's.
 
 ## Relationship to v1
 

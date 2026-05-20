@@ -21,16 +21,19 @@ yaao         → multi-agent orchestrator (uses ctx-sys as native retrieval peer
 
 | Phase | Focus | Release | Status |
 | --- | --- | --- | --- |
-| 1 | Focus & Sharpen | 2.0.0 | Planned |
+| 1 | Focus & Sharpen | 2.0.0 (code) | Planned |
 | 2 | Better Defaults | 2.1.0+ | Planned, post-2.0 |
+| 3 | Release Engineering | 2.0.0 (ship) | Planned, gates on Phase 1 |
 
 Additional phases will be added here as they're scoped. Each is expected to be small and improvement-flavored, not feature-driven.
 
+Phase 1 lands the code changes that *make* 2.0 a major version. Phase 3 is the cut event that actually publishes it to npm. Phase 2 is independent capability work that ships as later minor releases through Phase 3's pipeline.
+
 ---
 
-## Phase 1: Focus & Sharpen (2.0.0)
+## Phase 1: Focus & Sharpen (2.0.0 code)
 
-The 2.0 cut. Reduces ctx-sys's surface area, picks defaults a laptop can actually run, turns the MCP server into a clean composable peer, and ships the result via a proper release pipeline.
+The 2.0 code cut. Reduces ctx-sys's surface area, picks defaults a laptop can actually run, and turns the MCP server into a clean composable peer. The actual `npm publish` ships in [Phase 3](#phase-3-release-engineering-200-ship).
 
 | Feature | Description | Doc |
 | --- | --- | --- |
@@ -41,7 +44,6 @@ The 2.0 cut. Reduces ctx-sys's surface area, picks defaults a laptop can actuall
 | **F1.4** | MCP server polish | [phase-1/F1.4-mcp-server-polish.md](phase-1/F1.4-mcp-server-polish.md) |
 | **F1.5** | Cut the heuristic reranker | [phase-1/F1.5-cut-heuristic-reranker.md](phase-1/F1.5-cut-heuristic-reranker.md) |
 | **F1.6** | MCP init integration | [phase-1/F1.6-mcp-init.md](phase-1/F1.6-mcp-init.md) |
-| **F1.7** | npm publish (ships last) | [phase-1/F1.7-npm-publish.md](phase-1/F1.7-npm-publish.md) |
 
 **Key deliverables:**
 
@@ -57,7 +59,6 @@ The 2.0 cut. Reduces ctx-sys's surface area, picks defaults a laptop can actuall
 - `ctx-sys status --json` is the canonical workspace snapshot, with a stable schema yaao can consume.
 - Heuristic reranker removed. RRF over vector + FTS + graph is the final ranking; LLM reranker remains for opt-in high-quality paths. Score `[0, 1]` normalization extracted as a standalone helper and preserved.
 - `ctx-sys init` auto-registers the MCP server in `.mcp.json`, `.cursor/mcp.json`, `~/.codex/config.toml`, and `.github/copilot-instructions.md` (default on, opt out with `--no-mcp`, `--force` replaces a mismatched entry). Mirrors yaao's F14.2 semantics so both tools behave identically. No standalone `ctx-sys mcp` subcommand — re-running `ctx-sys init --mcp` is the canonical way to wire or re-wire MCP.
-- A repeatable release pipeline ships 2.0 via `npm publish --provenance` from a GitHub Actions workflow on tag push, with a beta period and a maintainer `RELEASING.md` checklist. F1.7 is the last feature merged; it's how 2.0 actually ships.
 
 **Out of scope for Phase 1:**
 
@@ -67,6 +68,7 @@ The 2.0 cut. Reduces ctx-sys's surface area, picks defaults a laptop can actuall
 - MCP prompts (agents can compose their own).
 - Multi-backend support and the `setup` / `doctor` flow — moved to Phase 2.
 - Structured PDF extraction — moved to Phase 2.
+- The npm publish pipeline (release workflow, CHANGELOG discipline, dist-tags, provenance, beta period) — moved to [Phase 3](#phase-3-release-engineering-200-ship). 2.0 ships when Phase 3 cuts the tag, not when Phase 1 merges.
 - Anything from v1 Phase 11 / Phase 12 (VS Code extension, SaaS, telemetry, auth).
 
 ---
@@ -89,6 +91,37 @@ Capability expansion on top of the stable 2.0 core. Improves the day-one experie
 - PDF extraction is pluggable with three tiers (pdf-parse → pdfjs → Docling); structured markdown preserves headings, tables, lists, and reading order on multi-column documents.
 - `post-checkout` / `post-merge` / `post-rewrite` git hooks installed by `ctx-sys init` (default on) keep the index synced with the working tree. Branch switches and pulls no longer leave retrieval silently stale. Distinct from the cut F1.0 pre-commit `hooks` feature.
 - No new MCP tools. No breaking changes. F2.0 ships a config-migration shim for existing setups.
+
+---
+
+## Phase 3: Release Engineering (2.0.0 ship)
+
+The cut event. Phase 1 lands the code; Phase 3 publishes it. Splitting the release pipeline out of Phase 1 keeps that phase scoped to behavior changes and gives the pipeline room to evolve independently of any single release — every subsequent ctx-sys version ships through the pipeline this phase puts in place.
+
+| Feature | Description | Doc |
+| --- | --- | --- |
+| **F3.0** | npm publish (release workflow, CHANGELOG, dist-tags, provenance, beta period) | [phase-3/F3.0-npm-publish.md](phase-3/F3.0-npm-publish.md) |
+
+**Key deliverables:**
+
+- `dist/` removed from version control; `npm publish` packs from a clean build at release time.
+- `CHANGELOG.md` follows [Keep a Changelog](https://keepachangelog.com); the 2.0.0 entry is pre-populated with the F1.0 breaking changes and the rest of Phase 1.
+- A GitHub Actions workflow at `.github/workflows/release.yml` triggers on `v*` tags: build → tests → stdio-discipline check (F1.4) → smoke test against the packed tarball → `npm publish --provenance` → GitHub Release.
+- Dist-tag discipline: `2.0.0-beta.N` cuts under `next`; `latest` stays on 1.x until the actual 2.0.0 cut.
+- 2-week beta minimum exercising the F1.0 schema migration; `2.0.0-rc.1` after a quiet week; `2.0.0` after another quiet week.
+- `RELEASING.md` documents the maintainer checklist; provenance is verifiable on the npm page.
+
+**Out of scope for Phase 3:**
+
+- Homebrew tap, deb/rpm, single-binary builds, JSR/GitHub Packages mirrors — npm is the only distribution channel for v2.
+- Auto-changelog generation from commits — the prose discipline is the point.
+- Standalone docs site — the repo README + the v2 docs tree are the v2 documentation surface.
+
+**Sequencing:**
+
+- Phase 3 cannot start until F1.0–F1.6 are merged. F3.0 is the thing that ships them.
+- Beta cuts under `next` are fine as Phase 1 work converges (e.g., once F1.0 + F1.4 are merged, a `2.0.0-beta.1` is reasonable for migration testing). The `2.0.0` tag waits for the full Phase 1 set plus the beta window.
+- Phase 2 is not blocking — F2.0/F2.1/F2.2 ship as later minor releases through the same pipeline.
 
 ---
 
