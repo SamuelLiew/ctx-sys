@@ -79,18 +79,20 @@ Capability expansion on top of the stable 2.0 core. Improves the day-one experie
 
 | Feature | Description | Doc |
 | --- | --- | --- |
-| **F2.0** | Local model UX | [phase-2/F2.0-local-model-ux.md](phase-2/F2.0-local-model-ux.md) |
-| **F2.1** | PDF extraction | [phase-2/F2.1-pdf-extraction.md](phase-2/F2.1-pdf-extraction.md) |
-| **F2.2** | Git-aware re-indexing | [phase-2/F2.2-git-aware-reindex.md](phase-2/F2.2-git-aware-reindex.md) |
+| **F2.0** | Git-aware re-indexing | [phase-2/F2.0-git-aware-reindex.md](phase-2/F2.0-git-aware-reindex.md) |
+| **F2.1** | Error message + hint audit | [phase-2/F2.1-error-hints.md](phase-2/F2.1-error-hints.md) |
+| **F2.2** | Local model UX | [phase-2/F2.2-local-model-ux.md](phase-2/F2.2-local-model-ux.md) |
+| **F2.3** | PDF extraction | [phase-2/F2.3-pdf-extraction.md](phase-2/F2.3-pdf-extraction.md) |
 
 **Key deliverables:**
 
+- `post-checkout` / `post-merge` / `post-rewrite` git hooks installed by `ctx-sys init` (default on) keep the index synced with the working tree. Branch switches and pulls no longer leave retrieval silently stale. Distinct from the cut F1.0 pre-commit `hooks` feature.
+- Every user-facing `CtxError` carries a `fix:` hint; every `throw new Error(...)` in `src/cli/` is lifted into a typed `CtxError`; the MCP error response shape always includes the `fix` field when one exists.
 - `ctx-sys setup` is a one-command bootstrap (backend detection, install, model pulls, sanity check).
 - Multi-backend provider abstraction supports Ollama, OpenAI-compatible (vLLM / LM Studio / llamafile / LiteLLM), OpenAI, and llama.cpp.
 - `ctx-sys doctor` is the canonical diagnostic command for "is my setup right?"
 - PDF extraction is pluggable with three tiers (pdf-parse → pdfjs → Docling); structured markdown preserves headings, tables, lists, and reading order on multi-column documents.
-- `post-checkout` / `post-merge` / `post-rewrite` git hooks installed by `ctx-sys init` (default on) keep the index synced with the working tree. Branch switches and pulls no longer leave retrieval silently stale. Distinct from the cut F1.0 pre-commit `hooks` feature.
-- No new MCP tools. No breaking changes. F2.0 ships a config-migration shim for existing setups.
+- No new MCP tools. No breaking changes. F2.2 ships a config-migration shim for existing setups.
 
 ---
 
@@ -121,7 +123,7 @@ The cut event. Phase 1 lands the code; Phase 3 publishes it. Splitting the relea
 
 - Phase 3 cannot start until F1.0–F1.6 are merged. F3.0 is the thing that ships them.
 - Beta cuts under `next` are fine as Phase 1 work converges (e.g., once F1.0 + F1.4 are merged, a `2.0.0-beta.1` is reasonable for migration testing). The `2.0.0` tag waits for the full Phase 1 set plus the beta window.
-- Phase 2 is not blocking — F2.0/F2.1/F2.2 ship as later minor releases through the same pipeline.
+- Phase 2 is not blocking — F2.0/F2.1/F2.2/F2.3 ship as later minor releases through the same pipeline.
 
 ---
 
