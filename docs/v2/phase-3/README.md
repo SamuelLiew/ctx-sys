@@ -17,7 +17,7 @@ Splitting "build the release machinery" out of Phase 1 keeps that phase scoped t
 ## Release plan
 
 - Phase 3 cannot start until all of F1.0–F1.6 are merged. The pipeline F3.0 builds is the thing that ships them.
-- Beta cuts under dist-tag `next` are fine as Phase 1 work converges (e.g., once F1.0 + F1.4 are merged, a `2.0.0-beta.1` is reasonable for migration testing). The `2.0.0` tag waits for the full Phase 1 set.
+- Beta cuts under dist-tag `next` are fine as Phase 1 work converges (e.g., once F1.0 + F1.4 are merged, a `2.0.0-beta.1` is reasonable for real-world testing of the trimmed tool surface). The `2.0.0` tag waits for the full Phase 1 set.
 - Phase 2 work is not blocking. F2.0/F2.1/F2.2/F2.3 ship in their own minor releases through the pipeline this phase puts in place.
 
 ## Relationship to other phases

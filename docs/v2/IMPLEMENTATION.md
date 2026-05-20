@@ -47,7 +47,7 @@ The 2.0 code cut. Reduces ctx-sys's surface area, picks defaults a laptop can ac
 
 **Key deliverables:**
 
-- 12 → 5 MCP tools. `session`, `message`, `decision`, `checkpoint`, `reflection`, `memory`, `hooks` removed. Schema migration exports v1 data to `.ctx-sys/migration-export-v1.jsonl`.
+- 12 → 5 MCP tools. `session`, `message`, `decision`, `checkpoint`, `reflection`, `memory`, `hooks` removed. No automatic migration — 1.x users delete `.ctx-sys/` and re-index.
 - ADRs are markdown documents indexed by the existing document indexer — no special node type.
 - `ctx-sys init` writes a seeded `.ctxignore` (with `.yaao/`, `.lean-ctx/`, build outputs, lockfiles, secrets). `.gitignore` is no longer read by default.
 - `gemma3:270m` is the default for both HyDE and summarization (was `gemma3:12b` + `qwen3:0.6b`). Both features remain opt-in.
@@ -110,7 +110,7 @@ The cut event. Phase 1 lands the code; Phase 3 publishes it. Splitting the relea
 - `CHANGELOG.md` follows [Keep a Changelog](https://keepachangelog.com); the 2.0.0 entry is pre-populated with the F1.0 breaking changes and the rest of Phase 1.
 - A GitHub Actions workflow at `.github/workflows/release.yml` triggers on `v*` tags: build → tests → stdio-discipline check (F1.4) → smoke test against the packed tarball → `npm publish --provenance` → GitHub Release.
 - Dist-tag discipline: `2.0.0-beta.N` cuts under `next`; `latest` stays on 1.x until the actual 2.0.0 cut.
-- 2-week beta minimum exercising the F1.0 schema migration; `2.0.0-rc.1` after a quiet week; `2.0.0` after another quiet week.
+- 2-week beta minimum exercising the trimmed tool surface end-to-end; `2.0.0-rc.1` after a quiet week; `2.0.0` after another quiet week.
 - `RELEASING.md` documents the maintainer checklist; provenance is verifiable on the npm page.
 
 **Out of scope for Phase 3:**
@@ -122,7 +122,7 @@ The cut event. Phase 1 lands the code; Phase 3 publishes it. Splitting the relea
 **Sequencing:**
 
 - Phase 3 cannot start until F1.0–F1.6 are merged. F3.0 is the thing that ships them.
-- Beta cuts under `next` are fine as Phase 1 work converges (e.g., once F1.0 + F1.4 are merged, a `2.0.0-beta.1` is reasonable for migration testing). The `2.0.0` tag waits for the full Phase 1 set plus the beta window.
+- Beta cuts under `next` are fine as Phase 1 work converges (e.g., once F1.0 + F1.4 are merged, a `2.0.0-beta.1` is reasonable for real-world testing of the trimmed tool surface). The `2.0.0` tag waits for the full Phase 1 set plus the beta window.
 - Phase 2 is not blocking — F2.0/F2.1/F2.2/F2.3 ship as later minor releases through the same pipeline.
 
 ---
