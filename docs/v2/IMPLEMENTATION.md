@@ -80,14 +80,14 @@ Capability expansion on top of the stable 2.0 core. Improves the day-one experie
 | Feature | Description | Doc |
 | --- | --- | --- |
 | **F2.0** | Git-aware re-indexing | [phase-2/F2.0-git-aware-reindex.md](phase-2/F2.0-git-aware-reindex.md) |
-| **F2.1** | Error message + hint audit | [phase-2/F2.1-error-hints.md](phase-2/F2.1-error-hints.md) |
+| **F2.1** | User-facing strings audit (errors + CLI help) | [phase-2/F2.1-user-facing-strings.md](phase-2/F2.1-user-facing-strings.md) |
 | **F2.2** | Local model UX | [phase-2/F2.2-local-model-ux.md](phase-2/F2.2-local-model-ux.md) |
 | **F2.3** | PDF extraction | [phase-2/F2.3-pdf-extraction.md](phase-2/F2.3-pdf-extraction.md) |
 
 **Key deliverables:**
 
 - `post-checkout` / `post-merge` / `post-rewrite` git hooks installed by `ctx-sys init` (default on) keep the index synced with the working tree. Branch switches and pulls no longer leave retrieval silently stale. Distinct from the cut F1.0 pre-commit `hooks` feature.
-- Every user-facing `CtxError` carries a `fix:` hint; every `throw new Error(...)` in `src/cli/` is lifted into a typed `CtxError`; the MCP error response shape always includes the `fix` field when one exists.
+- Every user-facing `CtxError` carries a `fix:` hint; every `throw new Error(...)` in `src/cli/` is lifted into a typed `CtxError`; the MCP error response shape always includes the `fix` field when one exists. Same audit covers every surviving CLI `--help` surface — usage examples via `addHelpText('after', ...)`, tightened descriptions, cross-references between chained commands, and a deliberate decision on the `instruction` group (keep + document, or cut alongside F1.0).
 - `ctx-sys setup` is a one-command bootstrap (backend detection, install, model pulls, sanity check).
 - Multi-backend provider abstraction supports Ollama, OpenAI-compatible (vLLM / LM Studio / llamafile / LiteLLM), OpenAI, and llama.cpp.
 - `ctx-sys doctor` is the canonical diagnostic command for "is my setup right?"
