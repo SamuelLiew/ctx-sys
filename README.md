@@ -283,6 +283,8 @@ ctx-sys      → semantic + graph retrieval over codebase    (input side, intell
 yaao         → multi-agent orchestrator (uses ctx-sys as native retrieval peer)
 ```
 
+[yaao](https://github.com/david-franz/yaao) integrates with ctx-sys natively: when enabled, it gives each orchestrated agent its own `ctx-sys serve` MCP server so agents query your codebase for context before writing code.
+
 ## Building from source
 
 ```bash
