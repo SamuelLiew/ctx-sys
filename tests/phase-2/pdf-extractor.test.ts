@@ -59,9 +59,18 @@ describe('F2.3 pluggable PDF extractor', () => {
   afterEach(() => { fs.rmSync(tmp, { recursive: true, force: true }); });
 
   describe('resolveExtractor', () => {
-    it('returns the Tier 1 pdf-parse extractor by default', () => {
-      expect(resolveExtractor()).toBeInstanceOf(PdfParseExtractor);
-      expect(resolveExtractor('auto').name).toBe('pdf-parse');
+    it('returns Tier 2 (pdfjs) for auto and explicit name', () => {
+      // v2 F2.3 finalised: 'auto' returns Tier 2 because pdfjs is a
+      // clean superset of Tier 1 (heading detection + better reading
+      // order) at no install cost (pdfjs-dist is already a dep).
+      expect(resolveExtractor().name).toBe('pdfjs');
+      expect(resolveExtractor('auto').name).toBe('pdfjs');
+    });
+
+    it('returns Tier 1 (pdf-parse) when explicitly asked', () => {
+      const extractor = resolveExtractor('pdf-parse');
+      expect(extractor).toBeInstanceOf(PdfParseExtractor);
+      expect(extractor.name).toBe('pdf-parse');
     });
   });
 
@@ -108,6 +117,11 @@ describe('F2.3 pluggable PDF extractor', () => {
       expect(second.cacheHit).toBe(true);
       expect(second.markdown).toBe(first.markdown);
       expect(second.metadata).toEqual(first.metadata);
+      // v2 F2.3 final: cached payload also round-trips pages + fullText
+      // so the document-indexer can rebuild per-page Section entities
+      // on a cache hit without re-running the extractor.
+      expect(second.pages).toEqual(first.pages);
+      expect(second.fullText).toBe(first.fullText);
     });
 
     it('different buffers get different cache entries', async () => {

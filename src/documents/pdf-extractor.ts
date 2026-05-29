@@ -26,6 +26,15 @@ export interface ExtractOptions {
 export interface ExtractedPdf {
   /** Structured markdown for the existing document indexer to consume. */
   markdown: string;
+  /**
+   * Per-page text. Optional because higher-fidelity extractors (Tier 3
+   * Docling) may not preserve page boundaries; Tier 1 + Tier 2 do.
+   * The document indexer uses this to materialise one Section entity
+   * per page; falls back to whole-document chunking when absent.
+   */
+  pages?: Array<{ pageNumber: number; text: string }>;
+  /** Full plain text (no markdown markup). Used by the entity content field. */
+  fullText: string;
   metadata: {
     title?: string;
     author?: string;
@@ -74,6 +83,8 @@ export class PdfParseExtractor implements PdfExtractor {
 
     return {
       markdown: [headerLines.join('\n'), '', body].join('\n').trimEnd() + '\n',
+      pages: doc.pages.map(p => ({ pageNumber: p.pageNumber, text: p.text })),
+      fullText: doc.fullText,
       metadata: {
         title: doc.title || undefined,
         author: doc.author || undefined,
@@ -91,15 +102,30 @@ export class PdfParseExtractor implements PdfExtractor {
 }
 
 /**
- * Resolve the active extractor by name. Today only Tier 1 is wired;
- * adding Tier 2 / Tier 3 is a switch case + a new implementation file.
+ * Resolve the active extractor by name. v2 F2.3 finishes Tier 1 +
+ * Tier 2 wiring; Tier 3 (Docling) plugs in through the same interface
+ * via the F2.2 provider abstraction when a docling-service block is
+ * configured. 'auto' returns Tier 2 (pdfjs) because it's a clean
+ * superset of Tier 1 — every Tier-1 capability still works, plus
+ * heading detection + better reading order — at no install cost
+ * (pdfjs-dist is already a dep).
  */
-export function resolveExtractor(name: 'auto' | 'pdf-parse' = 'auto'): PdfExtractor {
+export type ExtractorName = 'auto' | 'pdf-parse' | 'pdfjs';
+
+export function resolveExtractor(name: ExtractorName = 'auto'): PdfExtractor {
   switch (name) {
     case 'pdf-parse':
-    case 'auto':
-    default:
       return new PdfParseExtractor();
+    case 'pdfjs':
+    case 'auto':
+    default: {
+      // Lazy require so the Tier 2 module's ESM dynamic import isn't
+      // resolved unless the caller actually wants Tier 2 (matters for
+      // surface tests that mock pdf-parse only).
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { PdfjsExtractor } = require('./pdf-extractor-pdfjs');
+      return new PdfjsExtractor();
+    }
   }
 }
 
@@ -129,6 +155,14 @@ export async function extractWithCache(
   const result = await extractor.extract(buffer, opts);
   fs.mkdirSync(cacheDir, { recursive: true });
   fs.writeFileSync(mdPath, result.markdown);
-  fs.writeFileSync(metaPath, JSON.stringify({ metadata: result.metadata, warnings: result.warnings }));
+  // v2 F2.3 final: round-trip everything the document-indexer needs
+  // (pages + fullText + metadata + warnings) so a cache hit rebuilds
+  // the full ExtractedPdf without touching the extractor again.
+  fs.writeFileSync(metaPath, JSON.stringify({
+    pages: result.pages,
+    fullText: result.fullText,
+    metadata: result.metadata,
+    warnings: result.warnings,
+  }));
   return { ...result, cacheHit: false };
 }

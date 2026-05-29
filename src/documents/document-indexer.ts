@@ -808,31 +808,51 @@ export class DocumentIndexer {
     buffer: Buffer,
     hash: string
   ): Promise<DocumentIndexResult> {
-    const { parsePdf } = await import('./pdf-parser.js');
-    const pdf = await parsePdf(buffer);
+    // v2 F2.3: route every PDF through the pluggable extractor + the
+    // content-addressed cache so re-extracting the same PDF is a no-op
+    // and swapping Tier 1 → Tier 2 (heading detection + better reading
+    // order) is a config flip rather than a code change. The cache
+    // lives next to the project's database directory so it follows the
+    // existing 'state goes in .ctx-sys/' convention.
+    const { resolveExtractor, extractWithCache } = await import('./pdf-extractor.js');
+    const extractor = resolveExtractor('auto');
+    // Cache root sits under .ctx-sys/ next to the project so it follows
+    // the existing 'all engine state lives in .ctx-sys/' convention.
+    // The cache is content-addressed (sha256 of buffer + extractor name)
+    // so multi-project use is safe.
+    const cacheRoot = path.join(process.cwd(), '.ctx-sys');
+    const pdf = await extractWithCache(buffer, extractor, cacheRoot);
+
     let entitiesCreated = 0;
     let relationshipsCreated = 0;
     const name = path.basename(filePath);
-    const title = pdf.title || name;
+    const title = (pdf.metadata.title as string | undefined) || name;
+    const author = pdf.metadata.author as string | undefined;
+    const pageCount = pdf.metadata.pageCount;
 
     const docEntity = await this.entityStore.upsert({
       type: 'document',
       name: title,
       qualifiedName: filePath,
+      // Cap content at 100KB to keep the entity row reasonable; the
+      // per-page sections below carry the full text in chunks.
       content: pdf.fullText.slice(0, 100000),
-      summary: `PDF: ${title} — ${pdf.pageCount} pages${pdf.author ? ` by ${pdf.author}` : ''}`,
+      summary: `PDF: ${title} — ${pageCount} pages${author ? ` by ${author}` : ''}`,
       filePath,
       metadata: {
+        ...pdf.metadata,
         hash,
         docType: 'pdf',
-        pageCount: pdf.pageCount,
-        ...pdf.metadata,
+        pageCount,
+        cacheHit: pdf.cacheHit,
+        extractor: extractor.name,
       },
     });
     entitiesCreated++;
 
-    // Create section entities for each page
-    for (const page of pdf.pages) {
+    // Create section entities for each page (when the extractor
+    // preserved page boundaries — Tier 1 + Tier 2 do; Tier 3 may not).
+    for (const page of pdf.pages ?? []) {
       if (page.text.length < 50) continue;
 
       const pageEntity = await this.entityStore.upsert({
