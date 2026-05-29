@@ -12,7 +12,7 @@ AI coding assistants are limited by context windows. They can't see your whole c
 
 - **Hybrid RAG** — combines vector search, keyword/FTS5, and graph traversal with reciprocal rank fusion.
 - **Local-first** — your code never leaves your machine. Ollama handles embeddings and (optional) summarization.
-- **Code-aware** — tree-sitter AST parsing extracts functions, classes, imports, and relationships across TypeScript/JavaScript, Python, Go, Rust, Java, C/C++, and C#.
+- **Code-aware** — tree-sitter AST parsing extracts functions, classes, imports, and relationships, with dedicated extractors for TypeScript/JavaScript, Python, C/C++, and C# (Go, Rust, and Java are parsed with tree-sitter too but use a lighter generic extractor — see [Supported languages](#supported-languages)).
 - **MCP-native** — works with Claude Desktop, Claude Code, Cursor, or any MCP-compatible client.
 
 ctx-sys focuses on retrieval. Conversational/session memory is intentionally out of scope — pair it with [lean-ctx](https://github.com/davidfranz/lean-ctx), mem0, or your assistant's native memory if you need that.
@@ -241,17 +241,19 @@ The provider abstraction also covers OpenAI-compatible servers (vLLM, LM Studio,
 
 ## Supported languages
 
-| Language | Parsing | Entities extracted |
-| -------- | ------- | ------------------ |
-| TypeScript/JavaScript | tree-sitter | Functions, classes, methods, interfaces, types, imports |
-| Python | tree-sitter | Functions, classes, methods, imports |
-| Rust | tree-sitter | Functions, structs, impls, traits, imports |
-| Go | tree-sitter | Functions, structs, methods, interfaces, imports |
-| Java | tree-sitter | Classes, methods, interfaces, imports |
-| C/C++ | tree-sitter | Functions, classes, structs, enums, namespaces, `#include`s |
-| C# | tree-sitter | Classes, interfaces, structs, records, enums, methods, usings |
+Everything below is parsed with tree-sitter. Entity extraction comes in two tiers: **dedicated extractors** pull rich, language-specific symbols, while the **generic extractor** is a fallback that detects functions and classes/structs by node type (no imports, and no language-specific kinds like traits or interfaces) for grammars without a dedicated extractor yet.
 
-All grammars ship bundled as WASM via `@vscode/tree-sitter-wasm` — no per-language native compilation.
+| Language | Extractor | Entities extracted |
+| -------- | --------- | ------------------ |
+| TypeScript/JavaScript | dedicated | Functions, classes, methods, interfaces, types, imports |
+| Python | dedicated | Functions, classes, methods, imports |
+| C/C++ | dedicated | Functions, classes, structs, enums, namespaces, `#include`s |
+| C# | dedicated | Classes, interfaces, structs, records, enums, methods, usings |
+| Go | generic | Functions, methods, and structs only |
+| Rust | generic | Functions and structs only |
+| Java | generic | Classes and methods only |
+
+Go, Rust, and Java are on the roadmap for dedicated extractors (structs/impls/traits for Rust, interfaces/embedded types for Go, generics/annotations for Java). All grammars ship bundled as WASM via `@vscode/tree-sitter-wasm` — no per-language native compilation.
 
 Documents (Markdown, HTML, YAML, JSON, TOML, PDF, CSV, XML, plain text) are also indexed with semantic chunking. PDF extraction is pluggable behind a `PdfExtractor` interface with two tiers: Tier 1 (pdf-parse with structured markdown + page headings) and Tier 2 (pdfjs-dist with font-height-based heading detection + stable per-page reading order). A content-addressed cache makes re-indexing the same PDF a no-op; a structure-aware Docling tier can plug in behind the same interface.
 
