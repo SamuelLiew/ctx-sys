@@ -1,10 +1,9 @@
 /**
  * Score normalization for search results.
  *
- * v2 F1.5: extracted from the cut heuristic reranker. Downstream consumers
- * (context-assembler, relevance-floor cutoffs, confidence reporting) expect
- * scores in a consistent [0, 1] range. Apply this once at the end of the
- * retrieval pipeline (after RRF fusion, and after LLM rerank if enabled).
+ * Downstream consumers (context-assembler, relevance-floor cutoffs,
+ * confidence reporting) expect scores in a consistent [0, 1] range. Apply
+ * this once at the end of the retrieval pipeline, after RRF fusion.
  */
 
 /**

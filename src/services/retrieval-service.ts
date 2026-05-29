@@ -52,9 +52,7 @@ export class RetrievalService {
         embeddingManager,
         graphTraversal,
         undefined,
-        // v2 F1.5: HeuristicReranker constructor arg removed. RRF +
-        // score normalization is the final ranking; LLM reranker stays
-        // as an opt-in path.
+        // RRF + score normalization is the final ranking.
         this.context.logger
       ));
     }

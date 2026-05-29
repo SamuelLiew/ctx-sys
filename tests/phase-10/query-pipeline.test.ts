@@ -1,24 +1,4 @@
 import { QueryDecomposer } from '../../src/retrieval/query-decomposer';
-import { LLMReranker } from '../../src/retrieval/llm-reranker';
-import { SearchResult } from '../../src/retrieval/types';
-import { Entity } from '../../src/entities';
-
-function makeEntity(name: string, type: string = 'function', content?: string): Entity {
-  return {
-    id: `id-${name}`,
-    type: type as Entity['type'],
-    name,
-    content: content || `${type} ${name}() {}`,
-    summary: `The ${name} ${type}`,
-    metadata: {},
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
-}
-
-function makeResult(entity: Entity, score: number): SearchResult {
-  return { entity, score, source: 'keyword' };
-}
 
 describe('F10.12 - Advanced Query Pipeline', () => {
   describe('QueryDecomposer', () => {
@@ -105,51 +85,6 @@ describe('F10.12 - Advanced Query Pipeline', () => {
           }
         }
       });
-    });
-  });
-
-  describe('LLMReranker', () => {
-    it('should return empty results for empty input', async () => {
-      const reranker = new LLMReranker();
-      const result = await reranker.rerank('test query', []);
-      expect(result.results).toHaveLength(0);
-      expect(result.reranked).toBe(false);
-    });
-
-    it('should gracefully handle unavailable LLM', async () => {
-      // Use an invalid URL so the LLM call fails
-      const reranker = new LLMReranker({
-        baseUrl: 'http://localhost:1',
-        timeout: 500,
-      });
-
-      const entities = [
-        makeEntity('funcA'),
-        makeEntity('funcB'),
-      ];
-
-      const results = entities.map((e, i) => makeResult(e, 1 - i * 0.1));
-
-      const ranked = await reranker.rerank('test query', results);
-
-      // Should return original results when LLM is unavailable
-      expect(ranked.reranked).toBe(false);
-      expect(ranked.results).toHaveLength(2);
-      expect(ranked.results[0].entity.name).toBe('funcA');
-    });
-
-    it('should check availability', async () => {
-      const reranker = new LLMReranker({
-        baseUrl: 'http://localhost:1',
-      });
-      const available = await reranker.isAvailable();
-      expect(available).toBe(false);
-    });
-
-    it('should respect topK configuration', () => {
-      const reranker = new LLMReranker({ topK: 5 });
-      // Just verify it constructs without error
-      expect(reranker).toBeDefined();
     });
   });
 });

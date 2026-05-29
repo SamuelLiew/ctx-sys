@@ -84,15 +84,7 @@ export {
   DecompositionResult
 } from './query-decomposer';
 
-// LLM Re-ranking
-export {
-  LLMReranker,
-  RerankerConfig,
-  RerankResult
-} from './llm-reranker';
-
-// Score normalization (v2 F1.5: replaces the cut heuristic reranker's
-// normalization step; called at the end of the fusion path).
+// Score normalization (called at the end of the fusion path).
 export { normalizeScores } from './score-normalizer';
 
 // Shared Types

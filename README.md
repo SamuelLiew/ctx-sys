@@ -272,7 +272,7 @@ ctx-sys stores everything in a single SQLite database (via `better-sqlite3` — 
 - **Vectors** — embeddings via `sqlite-vec` for fast KNN search.
 - **FTS5** — full-text search with BM25 ranking.
 
-Search combines vector + FTS + graph retrieval using reciprocal rank fusion (RRF) as the final ranking, with an optional LLM reranker as an opt-in high-quality path. Advanced features include HyDE query expansion, query decomposition, retrieval gating, and smart context expansion.
+Search combines vector + FTS + graph retrieval using reciprocal rank fusion (RRF) as the final ranking, with score normalization applied once at the end of the fusion path. Advanced features include HyDE query expansion, query decomposition, retrieval gating, and smart context expansion.
 
 ## Where ctx-sys fits
 

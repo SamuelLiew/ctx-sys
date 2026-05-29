@@ -81,9 +81,8 @@ export class MultiStrategySearch {
     queryParser?: QueryParser,
     logger?: Logger
   ) {
-    // v2 F1.5: HeuristicReranker removed. RRF over vector + FTS + graph is
-    // the final ranking; the LLM reranker stays as an opt-in high-quality
-    // path on the assembled context, not on the raw search results.
+    // RRF over vector + FTS + graph is the final ranking, normalized once
+    // at the end of the fusion path.
     this.queryParser = queryParser ?? new QueryParser();
     this.logger = logger ?? consoleLogger;
   }
