@@ -22,7 +22,7 @@ yaao         → multi-agent orchestrator (uses ctx-sys as native retrieval peer
 | Phase | Focus | Release | Status |
 | --- | --- | --- | --- |
 | 1 | Focus & Sharpen | 2.0.0 (code) | **Code complete** (F1.0–F1.6 merged; F1.4 partial — see deferrals below) |
-| 2 | Better Defaults | 2.1.0+ | Planned, post-2.0 |
+| 2 | Better Defaults | 2.1.0+ | **First pass merged** (F2.0 + F2.1 full; F2.2 + F2.3 scoped subsets — see deferrals below) |
 | 3 | Release Engineering | 2.0.0 (ship) | Planned, gates on Phase 1 |
 
 Additional phases will be added here as they're scoped. Each is expected to be small and improvement-flavored, not feature-driven.
@@ -84,12 +84,12 @@ The 2.0 code cut. Reduces ctx-sys's surface area, picks defaults a laptop can ac
 
 Capability expansion on top of the stable 2.0 core. Improves the day-one experience, document quality, and git-aware behavior without growing ctx-sys's MCP surface.
 
-| Feature | Description | Doc |
-| --- | --- | --- |
-| **F2.0** | Git-aware re-indexing | [phase-2/F2.0-git-aware-reindex.md](phase-2/F2.0-git-aware-reindex.md) |
-| **F2.1** | User-facing strings audit (errors + CLI help) | [phase-2/F2.1-user-facing-strings.md](phase-2/F2.1-user-facing-strings.md) |
-| **F2.2** | Local model UX | [phase-2/F2.2-local-model-ux.md](phase-2/F2.2-local-model-ux.md) |
-| **F2.3** | PDF extraction | [phase-2/F2.3-pdf-extraction.md](phase-2/F2.3-pdf-extraction.md) |
+| Feature | Description | Status | Doc |
+| --- | --- | --- | --- |
+| **F2.0** | Git-aware re-indexing | Shipped | [phase-2/F2.0-git-aware-reindex.md](phase-2/F2.0-git-aware-reindex.md) |
+| **F2.1** | User-facing strings audit (errors + CLI help) | Shipped | [phase-2/F2.1-user-facing-strings.md](phase-2/F2.1-user-facing-strings.md) |
+| **F2.2** | Local model UX | Shipped (partial — see below) | [phase-2/F2.2-local-model-ux.md](phase-2/F2.2-local-model-ux.md) |
+| **F2.3** | PDF extraction | Shipped (Tier 1 + cache; Tier 2/3 deferred) | [phase-2/F2.3-pdf-extraction.md](phase-2/F2.3-pdf-extraction.md) |
 
 **Key deliverables:**
 
@@ -100,6 +100,11 @@ Capability expansion on top of the stable 2.0 core. Improves the day-one experie
 - `ctx-sys doctor` is the canonical diagnostic command for "is my setup right?"
 - PDF extraction is pluggable with three tiers (pdf-parse → pdfjs → Docling); structured markdown preserves headings, tables, lists, and reading order on multi-column documents.
 - No new MCP tools. No breaking changes. F2.2 ships a config-migration shim for existing setups.
+
+**Phase 2 deferrals** (carried as follow-up work; not blocking the first-pass completion):
+
+- **F2.2 deferred:** `ctx-sys setup` interactive bootstrap; the multi-backend provider abstraction (Ollama / OpenAI-compatible / OpenAI / llama.cpp); preflight on every backend-touching command; first-call model loading indicator; sqlite-vec pin from alpha → stable. The native-module portion of `ctx-sys doctor` shipped (better-sqlite3 / sqlite-vec / Node version checks) and `ctx-sys doctor` is now a top-level command, which is the highest-leverage subset.
+- **F2.3 deferred:** Tier 2 (pdfjs/mupdf) and Tier 3 (Docling) extractors. The `PdfExtractor` interface and content-addressed cache shipped with Tier 1 (pdf-parse) wired, so Tier 2/3 is purely additive — each adds a new file behind the interface plus a switch case in `resolveExtractor`. Wiring the cache into the existing document-indexer's PDF path is also a follow-up.
 
 ---
 

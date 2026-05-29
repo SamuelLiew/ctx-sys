@@ -10,7 +10,13 @@ npm install -g ctx-sys
 
 **ctx-sys 1.x is the current published version.** Install from npm, point your AI assistant at it via MCP, get hybrid retrieval today.
 
-**v2 is in progress.** Phase 1 (the scope-reducing release that sharpens the project around its strongest capability — hybrid retrieval over a code knowledge graph) is **code-complete on `main`**: F1.0 (prune conversational memory + hooks; V1 DB detection), F1.1 (.ctxignore defaults), F1.2 (lighter default models), F1.3 (`ctx-sys serve --socket` + ready signal for yaao integration), F1.4 (stdio hygiene + `status --json` schema), F1.5 (heuristic reranker cut), F1.6 (`ctx-sys init` auto-registers MCP in four targets) are all merged. Phase 2 (better defaults — git-aware reindex, user-facing strings audit, multi-backend provider abstraction, structured PDF extraction) and Phase 3 (the npm release pipeline that actually ships 2.0.0) are planned. The [v2 implementation plan](docs/v2/IMPLEMENTATION.md) is the working spec with per-phase detail under [docs/v2/phase-1](docs/v2/phase-1/), [docs/v2/phase-2](docs/v2/phase-2/), and [docs/v2/phase-3](docs/v2/phase-3/).
+**v2 is in progress.** **Phases 1 and 2 are first-pass-merged on `main`**:
+
+- **Phase 1 (code-complete)** — F1.0 (prune conversational memory + hooks; V1 DB detection), F1.1 (.ctxignore defaults), F1.2 (lighter default models), F1.3 (`ctx-sys serve --socket` + ready signal for yaao integration), F1.4 (stdio hygiene + `status --json` schema), F1.5 (heuristic reranker cut), F1.6 (`ctx-sys init` auto-registers MCP in four targets).
+- **Phase 2 (first pass merged)** — F2.0 (post-checkout/merge/rewrite/applypatch hooks + `ctx-sys reindex` with worktree gate), F2.1 (every `CtxError` carries a `fix:` + CLI `addHelpText` examples on the top-level commands + no bare `throw new Error(` in `src/cli/`), F2.2 scoped subset (`ctx-sys doctor` registered as a top-level command with native-module checks: better-sqlite3, sqlite-vec PASS/WARN, Node version), F2.3 scoped subset (pluggable `PdfExtractor` interface + Tier 1 pdf-parse wrapper + content-addressed cache). The F2.2 provider-abstraction + `ctx-sys setup` work and F2.3 Tier 2/3 extractors are deferred — see [docs/v2/IMPLEMENTATION.md](docs/v2/IMPLEMENTATION.md) for the exact deferral list.
+- **Phase 3 (planned)** — the npm release pipeline that actually ships 2.0.0.
+
+The [v2 implementation plan](docs/v2/IMPLEMENTATION.md) is the working spec with per-phase detail under [docs/v2/phase-1](docs/v2/phase-1/), [docs/v2/phase-2](docs/v2/phase-2/), and [docs/v2/phase-3](docs/v2/phase-3/).
 
 Where this README mentions a v2 change, it's flagged inline.
 
