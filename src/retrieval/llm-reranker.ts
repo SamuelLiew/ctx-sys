@@ -15,7 +15,7 @@ export interface RerankerConfig {
 
 const DEFAULT_CONFIG: Required<RerankerConfig> = {
   baseUrl: 'http://localhost:11434',
-  model: 'qwen3:0.6b',
+  model: 'gemma3:270m',
   topK: 20,
   timeout: 10000,
 };

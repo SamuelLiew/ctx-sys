@@ -23,6 +23,6 @@ export {
   IndexingConfig,
   SummarizationConfig,
   EmbeddingsConfig,
-  SessionsConfig,
-  RetrievalConfig
+  RetrievalConfig,
+  HyDeConfig
 } from './types';

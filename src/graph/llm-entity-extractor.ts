@@ -1,6 +1,6 @@
 /**
  * F10.9: LLM-powered entity extraction from free text.
- * Uses Ollama (qwen3:0.6b) to discover entities in documents.
+ * Uses Ollama (gemma3:270m) to discover entities in documents.
  */
 
 import { ollamaFetch } from '../utils/ollama-fetch';
@@ -23,7 +23,7 @@ export class LLMEntityExtractor {
 
   constructor(options: LLMEntityExtractorOptions = {}) {
     this.baseUrl = options.baseUrl || 'http://localhost:11434';
-    this.model = options.model || 'qwen3:0.6b';
+    this.model = options.model || 'gemma3:270m';
   }
 
   async extract(text: string, context?: string): Promise<ExtractedEntity[]> {

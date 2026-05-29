@@ -23,7 +23,7 @@ export class OllamaSummarizationProvider implements SummarizationProvider {
 
   constructor(options: OllamaOptions = {}) {
     this.baseUrl = options.baseUrl || 'http://localhost:11434';
-    this.model = options.model || 'qwen3:0.6b';
+    this.model = options.model || 'gemma3:270m';
     this.concurrency = options.concurrency || 5;
   }
 

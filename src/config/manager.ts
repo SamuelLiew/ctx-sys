@@ -15,7 +15,6 @@ import {
   IndexingConfig,
   SummarizationConfig,
   EmbeddingsConfig,
-  SessionsConfig,
   RetrievalConfig
 } from './types';
 
@@ -307,8 +306,8 @@ export class ConfigManager {
       indexing: { ...defaults.indexing, ...config.indexing },
       summarization: { ...defaults.summarization, ...config.summarization },
       embeddings: { ...defaults.embeddings, ...config.embeddings },
-      sessions: { ...defaults.sessions, ...config.sessions },
-      retrieval: { ...defaults.retrieval, ...config.retrieval }
+      retrieval: { ...defaults.retrieval, ...config.retrieval },
+      hyde: { ...defaults.hyde, ...config.hyde, model: config.hyde?.model ?? defaults.hyde?.model ?? 'gemma3:270m' }
     };
   }
 
@@ -390,7 +389,7 @@ export class ConfigManager {
         ollama: { base_url: 'http://localhost:11434' }
       },
       defaults: {
-        summarization: { provider: 'ollama', model: 'qwen2.5-coder:7b' },
+        summarization: { provider: 'ollama', model: 'gemma3:270m' },
         embeddings: { provider: 'ollama', model: 'mxbai-embed-large:latest' }
       },
       cli: {
@@ -412,24 +411,27 @@ export class ConfigManager {
         ignore: ['node_modules', '.git', '.ctx-sys', 'dist', 'build']
       },
       summarization: {
-        enabled: true,
+        // v2 F1.2: explicit opt-in. Summarization is a per-entity LLM
+        // call; many users don't enable it and shouldn't pay for it on
+        // first index.
+        enabled: false,
         provider: 'ollama',
-        model: 'qwen2.5-coder:7b'
+        model: 'gemma3:270m'
       },
       embeddings: {
         provider: 'ollama',
         model: 'mxbai-embed-large:latest'
-      },
-      sessions: {
-        retention: 30,
-        auto_summarize: true
       },
       retrieval: {
         default_max_tokens: 4000,
         strategies: ['vector', 'graph', 'fts']
       },
       hyde: {
-        model: 'gemma3:12b'
+        // v2 F1.2: explicit opt-in. The same small model covers both
+        // HyDE and summarization, so users only pull one extra model
+        // beyond the embedder when they enable either.
+        enabled: false,
+        model: 'gemma3:270m'
       }
     };
   }
@@ -446,7 +448,7 @@ export const DEFAULT_GLOBAL_CONFIG: GlobalConfig = {
     ollama: { base_url: 'http://localhost:11434' }
   },
   defaults: {
-    summarization: { provider: 'ollama', model: 'qwen2.5-coder:7b' },
+    summarization: { provider: 'ollama', model: 'gemma3:270m' },
     embeddings: { provider: 'ollama', model: 'mxbai-embed-large:latest' }
   },
   cli: {
@@ -466,23 +468,22 @@ export const DEFAULT_PROJECT_CONFIG_FILE: ProjectConfigFile = {
     ignore: ['node_modules', '.git', '.ctx-sys', 'dist', 'build']
   },
   summarization: {
-    enabled: true,
+    // v2 F1.2: explicit opt-in.
+    enabled: false,
     provider: 'ollama',
-    model: 'qwen2.5-coder:7b'
+    model: 'gemma3:270m'
   },
   embeddings: {
     provider: 'ollama',
     model: 'mxbai-embed-large:latest'
-  },
-  sessions: {
-    retention: 30,
-    auto_summarize: true
   },
   retrieval: {
     default_max_tokens: 4000,
     strategies: ['vector', 'graph', 'fts']
   },
   hyde: {
-    model: 'gemma3:12b'
+    // v2 F1.2: explicit opt-in; same small model as summarization.
+    enabled: false,
+    model: 'gemma3:270m'
   }
 };

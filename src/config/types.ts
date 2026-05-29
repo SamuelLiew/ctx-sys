@@ -111,14 +111,6 @@ export interface EmbeddingsConfig {
 }
 
 /**
- * Session configuration.
- */
-export interface SessionsConfig {
-  retention: number;
-  auto_summarize: boolean;
-}
-
-/**
  * Retrieval configuration.
  */
 export interface RetrievalConfig {
@@ -128,21 +120,26 @@ export interface RetrievalConfig {
 }
 
 /**
- * HyDE (Hypothetical Document Embeddings) configuration.
+ * HyDE (Hypothetical Document Embeddings) configuration. v2 F1.2:
+ * `enabled` is now an explicit opt-in toggle (default false); previously
+ * HyDE was opt-in only at the call site via `--hyde` / `hyde: true`.
  */
 export interface HyDeConfig {
+  enabled?: boolean;
   model: string;
 }
 
 /**
- * Project-level configuration.
+ * Project-level configuration. v2 F1.0 removed the `sessions` block alongside
+ * the conversation tooling; v2 F1.2 made `summarization.enabled` and
+ * `hyde.enabled` explicit opt-ins so users don't pay LLM cost for features
+ * they didn't ask for.
  */
 export interface ProjectConfigFile {
   project: ProjectIdentity;
   indexing: IndexingConfig;
   summarization: SummarizationConfig;
   embeddings: EmbeddingsConfig;
-  sessions: SessionsConfig;
   retrieval: RetrievalConfig;
   hyde?: HyDeConfig;
 }

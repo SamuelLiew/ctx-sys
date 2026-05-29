@@ -74,7 +74,7 @@ export const DEFAULT_PROJECT_CONFIG: ProjectConfig = {
   summarization: {
     enabled: true,
     provider: 'ollama',
-    model: 'qwen2.5-coder:7b'
+    model: 'gemma3:270m'
   },
   embeddings: {
     provider: 'ollama',

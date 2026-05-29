@@ -240,8 +240,8 @@ export function createDoctorCommand(output: CLIOutput = defaultOutput): Command 
       let ollamaUrl = 'http://localhost:11434';
       let dbPath = '';
       let embeddingModel = 'mxbai-embed-large:latest';
-      let hydeModel = 'gemma3:12b';
-      let summarizationModel = 'qwen2.5-coder:7b';
+      let hydeModel = 'gemma3:270m';
+      let summarizationModel = 'gemma3:270m';
 
       try {
         const configManager = new ConfigManager({ inMemoryOnly: true });

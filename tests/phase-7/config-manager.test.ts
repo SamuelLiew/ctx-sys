@@ -49,8 +49,11 @@ describe('ConfigManager', () => {
       expect(DEFAULT_PROJECT_CONFIG_FILE.indexing.mode).toBe('incremental');
       expect(DEFAULT_PROJECT_CONFIG_FILE.indexing.watch).toBe(false);
       expect(DEFAULT_PROJECT_CONFIG_FILE.indexing.ignore).toContain('node_modules');
-      expect(DEFAULT_PROJECT_CONFIG_FILE.summarization.enabled).toBe(true);
-      expect(DEFAULT_PROJECT_CONFIG_FILE.sessions.retention).toBe(30);
+      // v2 F1.2: summarization defaults to opt-in (false), sessions block removed.
+      expect(DEFAULT_PROJECT_CONFIG_FILE.summarization.enabled).toBe(false);
+      expect(DEFAULT_PROJECT_CONFIG_FILE.summarization.model).toBe('gemma3:270m');
+      expect(DEFAULT_PROJECT_CONFIG_FILE.hyde?.enabled).toBe(false);
+      expect(DEFAULT_PROJECT_CONFIG_FILE.hyde?.model).toBe('gemma3:270m');
       expect(DEFAULT_PROJECT_CONFIG_FILE.retrieval.default_max_tokens).toBe(4000);
     });
   });
@@ -220,9 +223,10 @@ project:
 
       // Custom value
       expect(config.project.name).toBe('my-project');
-      // Default values preserved
+      // Default values preserved (v2 F1.2: sessions block removed; assert a
+      // surviving default instead).
       expect(config.indexing.mode).toBe('incremental');
-      expect(config.sessions.retention).toBe(30);
+      expect(config.retrieval.default_max_tokens).toBe(4000);
     });
 
     it('should save global config to file', async () => {

@@ -81,8 +81,8 @@ async function runStatus(
     // Full health check mode (replaces doctor command)
     let ollamaUrl = 'http://localhost:11434';
     let embeddingModel = 'mxbai-embed-large:latest';
-    let hydeModel = 'gemma3:12b';
-    let summarizationModel = 'qwen2.5-coder:7b';
+    let hydeModel = 'gemma3:270m';
+    let summarizationModel = 'gemma3:270m';
 
     try {
       ollamaUrl = config.providers?.ollama?.base_url || ollamaUrl;

@@ -73,8 +73,9 @@ describe('F10.6 - LLM Summaries', () => {
     });
 
     it('should have correct id and model', () => {
+      // v2 F1.2: default model is gemma3:270m for both summarization and HyDE.
       expect(provider.id).toBe('ollama');
-      expect(provider.model).toBe('qwen3:0.6b');
+      expect(provider.model).toBe('gemma3:270m');
     });
 
     it('should allow custom model', () => {
