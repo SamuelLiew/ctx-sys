@@ -15,7 +15,7 @@ AI coding assistants are limited by context windows. They can't see your whole c
 - **Code-aware** — tree-sitter AST parsing extracts functions, classes, imports, and relationships, with dedicated extractors for TypeScript/JavaScript, Python, C/C++, and C# (Go, Rust, and Java are parsed with tree-sitter too but use a lighter generic extractor — see [Supported languages](#supported-languages)).
 - **MCP-native** — works with Claude Desktop, Claude Code, Cursor, or any MCP-compatible client.
 
-ctx-sys focuses on retrieval. Conversational/session memory is intentionally out of scope — pair it with [lean-ctx](https://github.com/davidfranz/lean-ctx), mem0, or your assistant's native memory if you need that.
+ctx-sys focuses on retrieval. Conversational/session memory is intentionally out of scope — pair it with lean-ctx, mem0, or your assistant's native memory if you need that.
 
 ## Quick Start (5 minutes)
 
@@ -290,7 +290,7 @@ yaao         → multi-agent orchestrator (uses ctx-sys as native retrieval peer
 ## Building from source
 
 ```bash
-git clone https://github.com/davidfranz/ctx-sys.git
+git clone https://github.com/david-franz/ctx-sys.git
 cd ctx-sys
 npm install
 npm run build

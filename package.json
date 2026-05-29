@@ -57,11 +57,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/davidfranz/ctx-sys.git"
+    "url": "git+https://github.com/david-franz/ctx-sys.git"
   },
   "homepage": "https://ctx-sys.dev",
   "bugs": {
-    "url": "https://github.com/davidfranz/ctx-sys/issues"
+    "url": "https://github.com/david-franz/ctx-sys/issues"
   },
   "publishConfig": {
     "access": "public"
