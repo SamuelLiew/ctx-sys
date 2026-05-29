@@ -213,6 +213,95 @@ export async function checkProject(dbPath: string, projectPath: string): Promise
 /**
  * Format a check result for display.
  */
+/**
+ * v2 F2.2: native-module checks.
+ *
+ * (1) better-sqlite3 loaded: run SELECT sqlite_version() against an
+ *     in-memory DB. PASS reports the resolved SQLite version.
+ * (2) sqlite-vec extension: PASS when the extension loaded and
+ *     vec_version() returns; WARN (not FAIL) otherwise — retrieval
+ *     still works, just falls back to FTS5 + graph. This is the
+ *     partner check for F2.1's SQLITE_VEC_UNAVAILABLE error.
+ * (3) Node version vs engines.node: parses package.json#engines.node
+ *     and asserts process.version satisfies the range.
+ */
+export async function checkBetterSqlite3(): Promise<CheckResult> {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const Database = require('better-sqlite3');
+    const db = new Database(':memory:');
+    const row = db.prepare('SELECT sqlite_version() AS v').get() as { v: string };
+    db.close();
+    return { name: 'better-sqlite3', status: 'ok', detail: `SQLite ${row.v}` };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return {
+      name: 'better-sqlite3',
+      status: 'fail',
+      detail: `Failed to load: ${msg}`,
+      fix: 'Reinstall with `npm install -g ctx-sys --force` to refresh the native binary.',
+    };
+  }
+}
+
+export async function checkSqliteVec(): Promise<CheckResult> {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const Database = require('better-sqlite3');
+    const db = new Database(':memory:');
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const sqliteVec = require('sqlite-vec');
+      sqliteVec.load(db);
+      const row = db.prepare('SELECT vec_version() AS v').get() as { v: string };
+      db.close();
+      return { name: 'sqlite-vec', status: 'ok', detail: `extension ${row.v}` };
+    } catch (err) {
+      db.close();
+      throw err;
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return {
+      name: 'sqlite-vec',
+      status: 'warn',
+      detail: `extension unavailable (${msg})`,
+      fix: 'Retrieval falls back to FTS5 + graph only. Reinstall with `npm install -g ctx-sys --force` or check your platform is supported by sqlite-vec prebuilds.',
+    };
+  }
+}
+
+export function checkNodeVersion(): CheckResult {
+  try {
+    const pkgPath = path.join(__dirname, '..', '..', 'package.json');
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8')) as { engines?: { node?: string } };
+    const engines = pkg.engines?.node;
+    const current = process.versions.node;
+    if (!engines) {
+      return { name: 'Node runtime', status: 'ok', detail: `${current} (no engines constraint)` };
+    }
+    // Cheap parse of '>=20.0.0' style — pull the first number after '>=' or 'v'.
+    const match = /([0-9]+)/.exec(engines);
+    const required = match ? parseInt(match[1], 10) : 0;
+    const currentMajor = parseInt(current.split('.')[0], 10);
+    if (currentMajor >= required) {
+      return { name: 'Node runtime', status: 'ok', detail: `${current} (satisfies ${engines})` };
+    }
+    return {
+      name: 'Node runtime',
+      status: 'fail',
+      detail: `${current} does not satisfy ${engines}`,
+      fix: `Upgrade Node to ${engines}. nvm: \`nvm install ${required} && nvm use ${required}\`.`,
+    };
+  } catch (err) {
+    return {
+      name: 'Node runtime',
+      status: 'warn',
+      detail: `Could not resolve engines.node: ${err instanceof Error ? err.message : String(err)}`,
+    };
+  }
+}
+
 export function formatCheck(check: CheckResult, maxNameLen: number): string {
   const dots = '.'.repeat(Math.max(1, maxNameLen - check.name.length + 2));
   const statusLabel =
@@ -262,6 +351,12 @@ export function createDoctorCommand(output: CLIOutput = defaultOutput): Command 
 
       // Run all checks
       const checks: CheckResult[] = [];
+
+      // v2 F2.2: native-module checks first — these are the silent-
+      // degradation cases users least expect.
+      checks.push(checkNodeVersion());
+      checks.push(await checkBetterSqlite3());
+      checks.push(await checkSqliteVec());
 
       const ollamaResult = await checkOllamaService(ollamaUrl);
       checks.push(ollamaResult);
