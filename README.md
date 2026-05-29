@@ -264,7 +264,7 @@ hyde:                    # optional
   model: gemma3:12b      # v2: gemma3:270m (lighter; remains opt-in)
 ```
 
-> **v2 — `indexing.content` (merged on `main`; ships in 2.0).** Controls what gets indexed: `both` (default, code + docs), `code` (AST entities only — same as `--no-doc`), or `docs` (documentation only, skips code). In `docs` mode the documentation set defaults to prose (`.md`, `.mdx`, `.txt`, `.rst`, `.pdf`) — set `indexing.doc_extensions` to widen or narrow it in any mode. Embeddings still run over the indexed documents. `index`, `index --git-sync` (the git-hook sync path), and `watch` all respect `content`. Switching an existing project to `docs` won't remove already-indexed code entities — delete `.ctx-sys/` and re-index for a clean docs-only store. The `--content <mode>` CLI flag overrides config per run.
+> **v2 — `indexing.content` (merged on `main`; ships in 2.0).** Controls what gets indexed: `both` (default, code + docs), `code` (AST entities only — same as `--no-doc`), or `docs` (documentation only, skips code). In `docs` mode the documentation set defaults to prose (`.md`, `.mdx`, `.txt`, `.rst`, `.pdf`) — set `indexing.doc_extensions` to widen or narrow it in any mode. Embeddings still run over the indexed documents. `index`, `index --git-sync` (the git-hook sync path), and `watch` all respect `content` (routing changed files to the code or document indexer). `watch` also refuses to run inside a git worktree and excludes `.yaao/` worktree churn, so it stays safe alongside yaao. Switching an existing project to `docs` won't remove already-indexed code entities — delete `.ctx-sys/` and re-index for a clean docs-only store. The `--content <mode>` CLI flag overrides config per run.
 
 <!-- -->
 

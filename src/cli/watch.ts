@@ -7,7 +7,10 @@ import * as path from 'path';
 import { ConfigManager } from '../config';
 import { DatabaseConnection } from '../db/connection';
 import { EntityStore } from '../entities';
+import { RelationshipStore } from '../graph/relationship-store';
 import { CodebaseIndexer } from '../indexer';
+import { isGitWorktree } from '../indexer/git-sync';
+import { DocumentIndexer, PROSE_DOC_EXTENSIONS } from '../documents/document-indexer';
 import { FileWatcher, WatchEvent } from '../watch';
 import { CLIOutput, defaultOutput } from './init';
 
@@ -29,10 +32,14 @@ Examples:
   ctx-sys watch ../other-project
   ctx-sys watch --include "src/**" --debounce 500
 
+Respects indexing.content: watches code, docs, or both, routing each
+changed file to the right indexer. Refuses to run inside a git worktree
+(those share the main index) and excludes .yaao/ worktree churn.
+
 Limitation: watches filesystem changes only. \`git checkout\` /
 \`git pull\` / \`git rebase\` are NOT picked up by the file watcher
-because git changes many files atomically; ctx-sys v2 F2.0 installs
-post-* git hooks that call \`ctx-sys reindex\` to cover that case.
+because git changes many files atomically; the git_hooks (default on)
+call \`ctx-sys index --git-sync\` to cover that case.
 `)
     .action(async (directory: string, options) => {
       try {
@@ -64,40 +71,51 @@ async function runWatch(
   const configManager = new ConfigManager();
   const config = await configManager.resolve(projectPath);
 
-  // `watch` reindexes code only. In docs-only mode there's nothing to watch;
-  // refuse with a clear message rather than silently watching code we won't index.
-  if (config.projectConfig.indexing.content === 'docs') {
-    output.error('Documentation-only mode (indexing.content: docs): `watch` reindexes code only, so there is nothing to watch. Re-run `ctx-sys index` after editing docs.');
+  // Worktree gate: refuse inside a git worktree (worktrees share the main
+  // index — e.g. yaao's per-task worktrees). Non-git dirs are fine to watch.
+  if (isGitWorktree(projectPath)) {
+    output.error('`watch` runs only in the main checkout, not a git worktree (worktrees share the main index). Run it from the main repository.');
     return;
   }
+
+  const indexing = config.projectConfig.indexing;
+  const content = indexing.content ?? 'both';
 
   // Set up database connection
   const dbPath = options.db || config.database.path;
   const db = new DatabaseConnection(dbPath);
   await db.initialize();
 
-  // Set up entity store with project ID
+  // Set up stores + content-aware indexers (mirrors `index`/`--git-sync`).
   const projectId = config.projectConfig.project.name || path.basename(projectPath);
   const entityStore = new EntityStore(db, projectId);
+  const relationshipStore = new RelationshipStore(db, projectId);
+  const codeIndexer = content !== 'docs' ? new CodebaseIndexer(projectPath, entityStore) : undefined;
+  const docIndexer = content !== 'code' ? new DocumentIndexer(entityStore, relationshipStore) : undefined;
+  const docExtensions =
+    content === 'code'
+      ? []
+      : indexing.doc_extensions ??
+        (content === 'docs' ? PROSE_DOC_EXTENSIONS : DocumentIndexer.getSupportedExtensions());
 
-  // Create indexer
-  const indexer = new CodebaseIndexer(projectPath, entityStore);
+  // Always keep yaao's worktree churn out of the main index — watch has no
+  // worktree gate for *nested* dirs, only for the root it's invoked in.
+  const baseExclude = options.exclude
+    ? options.exclude.split(',').map(s => s.trim())
+    : (config.projectConfig.indexing.ignore ?? []);
+  const exclude = Array.from(new Set([...baseExclude, '.yaao', '.yaao/**']));
 
   // Create watcher
   const watcher = new FileWatcher(
     {
       root: projectPath,
       debounceMs: parseInt(options.debounce || '300', 10),
-      include: options.include
-        ? options.include.split(',').map(s => s.trim())
-        : config.projectConfig.indexing.ignore
-          ? ['**/*']
-          : undefined,
-      exclude: options.exclude
-        ? options.exclude.split(',').map(s => s.trim())
-        : config.projectConfig.indexing.ignore
+      include: options.include ? options.include.split(',').map(s => s.trim()) : ['**/*'],
+      exclude,
+      docExtensions
     },
-    indexer
+    codeIndexer,
+    docIndexer
   );
 
   // Set up event handlers

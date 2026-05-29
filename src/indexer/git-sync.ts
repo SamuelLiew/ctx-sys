@@ -53,6 +53,21 @@ export function isMainCheckout(projectPath: string): boolean {
   return resolveRel(commonDir) === resolveRel(gitDir);
 }
 
+/**
+ * True only when `projectPath` is a *git worktree* (a linked worktree, not the
+ * main checkout). A non-git directory returns false — unlike isMainCheckout,
+ * this is for refusing to run *inside a worktree* without also blocking
+ * perfectly valid non-git projects (e.g. `watch`).
+ */
+export function isGitWorktree(projectPath: string): boolean {
+  const commonDir = safeExec('git rev-parse --git-common-dir', projectPath);
+  const gitDir = safeExec('git rev-parse --git-dir', projectPath);
+  if (!commonDir || !gitDir) return false;
+  const resolveRel = (p: string) =>
+    path.isAbsolute(p) ? path.resolve(p) : path.resolve(projectPath, p);
+  return resolveRel(commonDir) !== resolveRel(gitDir);
+}
+
 export interface GitSyncOptions {
   fromGitHook?: boolean;
   full?: boolean;

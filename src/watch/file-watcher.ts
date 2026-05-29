@@ -8,6 +8,7 @@ import * as path from 'path';
 import { EventEmitter } from 'events';
 import picomatch from 'picomatch';
 import { CodebaseIndexer, IndexResult } from '../indexer';
+import { DocumentIndexer } from '../documents/document-indexer';
 
 /**
  * Watch event types.
@@ -39,6 +40,12 @@ export interface WatchConfig {
   recursive?: boolean;
   /** Automatically re-index on changes (default: true) */
   autoReindex?: boolean;
+  /**
+   * v2: extensions routed to the document indexer (each includes the dot).
+   * A changed file whose extension is listed goes to the DocumentIndexer;
+   * everything else goes to the code indexer. Empty = no doc routing.
+   */
+  docExtensions?: string[];
 }
 
 /**
@@ -60,7 +67,8 @@ export const DEFAULT_WATCH_CONFIG: Required<Omit<WatchConfig, 'root'>> = {
   ],
   debounceMs: 300,
   recursive: true,
-  autoReindex: true
+  autoReindex: true,
+  docExtensions: []
 };
 
 /**
@@ -83,6 +91,7 @@ export interface WatchStats {
 export class FileWatcher extends EventEmitter {
   private config: Required<WatchConfig>;
   private indexer?: CodebaseIndexer;
+  private docIndexer?: DocumentIndexer;
   private watchers: Map<string, fs.FSWatcher> = new Map();
   private pendingChanges: Map<string, WatchEventType> = new Map();
   private debounceTimer: NodeJS.Timeout | null = null;
@@ -95,7 +104,7 @@ export class FileWatcher extends EventEmitter {
   };
   private isReindexing = false;
 
-  constructor(config: WatchConfig, indexer?: CodebaseIndexer) {
+  constructor(config: WatchConfig, indexer?: CodebaseIndexer, docIndexer?: DocumentIndexer) {
     super();
     this.config = {
       ...DEFAULT_WATCH_CONFIG,
@@ -104,6 +113,21 @@ export class FileWatcher extends EventEmitter {
       exclude: config.exclude ?? DEFAULT_WATCH_CONFIG.exclude
     };
     this.indexer = indexer;
+    this.docIndexer = docIndexer;
+  }
+
+  /**
+   * Route a single changed file to the right indexer: a doc-extension file
+   * goes to the document indexer (when present), everything else to the code
+   * indexer. Either may be absent depending on indexing.content.
+   */
+  private async indexOne(file: string): Promise<void> {
+    const ext = path.extname(file).toLowerCase();
+    if (this.docIndexer && this.config.docExtensions.includes(ext)) {
+      await this.docIndexer.indexFile(file);
+    } else if (this.indexer) {
+      await this.indexer.indexFile(file);
+    }
   }
 
   /**
@@ -171,20 +195,23 @@ export class FileWatcher extends EventEmitter {
    * Manually trigger a reindex for specified files.
    */
   async triggerReindex(files?: string[]): Promise<IndexResult | null> {
-    if (!this.indexer) {
+    if (!this.indexer && !this.docIndexer) {
       return null;
     }
 
     if (files && files.length > 0) {
-      // Index specific files
+      // Index specific files, routed to the code or document indexer.
       for (const file of files) {
-        await this.indexer.indexFile(file);
+        await this.indexOne(file);
       }
       this.stats.filesReindexed += files.length;
       return null;
     }
 
-    // Full incremental update
+    // Full incremental update (code only; docs have no whole-tree diff here).
+    if (!this.indexer) {
+      return null;
+    }
     const result = await this.indexer.updateIndex();
     this.stats.filesReindexed += result.added.length + result.modified.length;
     return result;
@@ -290,7 +317,7 @@ export class FileWatcher extends EventEmitter {
     this.emit('change', event);
 
     // Debounce reindexing
-    if (this.config.autoReindex && this.indexer) {
+    if (this.config.autoReindex && (this.indexer || this.docIndexer)) {
       this.scheduleReindex();
     }
   }
@@ -313,7 +340,7 @@ export class FileWatcher extends EventEmitter {
    * Perform the actual reindex operation.
    */
   private async performReindex(): Promise<void> {
-    if (this.isReindexing || !this.indexer) {
+    if (this.isReindexing || (!this.indexer && !this.docIndexer)) {
       return;
     }
 
@@ -345,7 +372,7 @@ export class FileWatcher extends EventEmitter {
       const filesToIndex = [...additions, ...modifications];
       for (const file of filesToIndex) {
         try {
-          await this.indexer.indexFile(file);
+          await this.indexOne(file);
           this.stats.filesReindexed++;
         } catch (error) {
           this.stats.errors++;
