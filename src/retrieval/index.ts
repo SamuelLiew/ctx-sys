@@ -91,12 +91,9 @@ export {
   RerankResult
 } from './llm-reranker';
 
-// Heuristic Re-ranking
-export {
-  HeuristicReranker,
-  Reranker,
-  RerankerResult
-} from './heuristic-reranker';
+// Score normalization (v2 F1.5: replaces the cut heuristic reranker's
+// normalization step; called at the end of the fusion path).
+export { normalizeScores } from './score-normalizer';
 
 // Shared Types
 export {

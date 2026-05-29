@@ -8,7 +8,7 @@ import { EmbeddingManager } from '../embeddings';
 import { GraphTraversal } from '../graph';
 import { QueryParser, ParsedQuery, EntityMention } from './query-parser';
 import { SearchResult, SearchStrategy, SearchConfig } from './types';
-import { Reranker } from './heuristic-reranker';
+import { normalizeScores } from './score-normalizer';
 import { Logger, consoleLogger } from '../utils/logger';
 
 /**
@@ -79,9 +79,11 @@ export class MultiStrategySearch {
     private embeddingManager: EmbeddingManager,
     private graphTraversal?: GraphTraversal,
     queryParser?: QueryParser,
-    private reranker?: Reranker,
     logger?: Logger
   ) {
+    // v2 F1.5: HeuristicReranker removed. RRF over vector + FTS + graph is
+    // the final ranking; the LLM reranker stays as an opt-in high-quality
+    // path on the assembled context, not on the raw search results.
     this.queryParser = queryParser ?? new QueryParser();
     this.logger = logger ?? consoleLogger;
   }
@@ -153,16 +155,11 @@ export class MultiStrategySearch {
     // Hydrate with full entities
     const hydrated = await this.hydrateResults(limited);
 
-    // Rerank if available
-    if (this.reranker && hydrated.length > 1) {
-      const reranked = await this.reranker.rerank(query, hydrated);
-      return reranked.map(r => {
-        const original = hydrated.find(h => h.entity.id === r.entityId)!;
-        return { ...original, score: r.rerankedScore };
-      }).filter(Boolean);
-    }
-
-    return hydrated;
+    // v2 F1.5: normalize to [0, 1] so downstream consumers (context
+    // assembler, relevance-floor cutoffs, confidence reporting) see a
+    // consistent score range. Replaces the heuristic reranker's
+    // multiplicative scoring + normalization.
+    return normalizeScores(hydrated);
   }
 
   /**

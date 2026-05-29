@@ -6,7 +6,7 @@ import { AppContext } from '../context';
 import { EntityType } from '../entities/types';
 import { RelationshipStore } from '../graph';
 import {
-  MultiStrategySearch, ContextAssembler, SearchResult, HeuristicReranker,
+  MultiStrategySearch, ContextAssembler, SearchResult,
   ContextExpander, RetrievalGate, QueryDecomposer, HyDEQueryExpander,
   OllamaHypotheticalProvider
 } from '../retrieval';
@@ -52,7 +52,9 @@ export class RetrievalService {
         embeddingManager,
         graphTraversal,
         undefined,
-        new HeuristicReranker(),
+        // v2 F1.5: HeuristicReranker constructor arg removed. RRF +
+        // score normalization is the final ranking; LLM reranker stays
+        // as an opt-in path.
         this.context.logger
       ));
     }
