@@ -23,6 +23,7 @@ import { createWatchCommand } from './watch';
 import { createStatusCommand } from './status';
 import { createReindexCommand } from './reindex';
 import { createDoctorCommand } from './doctor';
+import { createSetupCommand } from './setup';
 
 // Subcommand group imports
 import { createConfigCommand } from './config';
@@ -77,6 +78,7 @@ program.addCommand(createServeCommand());
 program.addCommand(createWatchCommand());
 program.addCommand(createReindexCommand());
 program.addCommand(createDoctorCommand());
+program.addCommand(createSetupCommand());
 
 // ─── Subcommand Groups ──────────────────────────────────────────────
 
