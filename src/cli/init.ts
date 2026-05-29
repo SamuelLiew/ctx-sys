@@ -7,6 +7,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { ConfigManager, DEFAULT_PROJECT_CONFIG_FILE } from '../config';
 import { writeMcpRegistrations } from './init-mcp';
+import { writeGitHooks } from './init-git-hooks';
 
 /**
  * v2 F1.1: seed `.ctxignore` content written by `ctx-sys init`.
@@ -88,6 +89,8 @@ export function createInitCommand(output: CLIOutput = defaultOutput): Command {
     .option('--no-mcp', 'v2 F1.6: skip auto-registering ctx-sys in MCP configs')
     .option('--mcp', 'v2 F1.6: explicitly opt in to MCP registration on re-init')
     .option('--mcp-name <name>', 'v2 F1.6: register under a different key (e.g. ctx-sys-frontend)')
+    .option('--no-git-hooks', 'v2 F2.0: skip installing post-checkout/merge/rewrite/applypatch hooks')
+    .option('--git-hooks', 'v2 F2.0: explicitly opt in to git-hook install on re-init')
     .action(async (directory: string, options) => {
       try {
         const projectPath = path.resolve(directory);
@@ -157,7 +160,7 @@ async function initGlobalConfig(
 async function initProjectConfig(
   configManager: ConfigManager,
   projectPath: string,
-  options: { name?: string; force?: boolean; ignoreFile?: boolean; mcp?: boolean; mcpName?: string },
+  options: { name?: string; force?: boolean; ignoreFile?: boolean; mcp?: boolean; mcpName?: string; gitHooks?: boolean },
   output: CLIOutput
 ): Promise<void> {
   const exists = await configManager.projectConfigExists(projectPath);
@@ -187,6 +190,13 @@ async function initProjectConfig(
   // user opts out. Mirrors yaao F14.2.
   if (options.mcp !== false) {
     await writeMcpRegistrations(projectPath, output, { name: options.mcpName, force: options.force });
+  }
+
+  // v2 F2.0: install the post-* git hooks so the index stays in sync
+  // with the working tree across checkout / pull / rebase. Default on;
+  // --no-git-hooks opts out.
+  if (options.gitHooks !== false) {
+    writeGitHooks(projectPath, output, { force: options.force });
   }
 
   output.log('');
