@@ -24,7 +24,6 @@ import { createStatusCommand } from './status';
 
 // Subcommand group imports
 import { createConfigCommand } from './config';
-import { createSessionsCommand, createMessagesCommand } from './sessions';
 import {
   createEntitiesCommand,
   createEntityCommand,
@@ -48,7 +47,6 @@ import {
   createProvidersCommand
 } from './summarize';
 import { createExtractRelCommand } from './extract-rel-cmd';
-import { createSearchDecisionsCommand } from './search-decisions-cmd';
 import { createKBCommand } from './kb';
 import { createInstructionCommand } from './instructions';
 import {
@@ -112,14 +110,6 @@ summarizeGroup.addCommand(createSummarizeCommand());
 summarizeGroup.addCommand(createSummarizeStatusCommand());
 summarizeGroup.addCommand(createProvidersCommand());
 program.addCommand(summarizeGroup);
-
-// session: list, messages, search-decisions
-const sessionGroup = new Command('session')
-  .description('Manage conversation sessions');
-sessionGroup.addCommand(createSessionsCommand());
-sessionGroup.addCommand(createMessagesCommand());
-sessionGroup.addCommand(createSearchDecisionsCommand());
-program.addCommand(sessionGroup);
 
 // config
 program.addCommand(createConfigCommand());

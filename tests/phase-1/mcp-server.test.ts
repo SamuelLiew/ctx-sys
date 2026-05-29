@@ -124,15 +124,15 @@ describe('F1.5 MCP Server Scaffold', () => {
       expect(actions).toContain('search');
     });
 
-    it('should have all 12 consolidated tools', () => {
+    it('should have the 5 surviving tools (v2 F1.0)', () => {
+      // session / message / decision / checkpoint / reflection / memory
+      // / hooks removed by F1.0.
       const registry = new ToolRegistry(context);
       const tools = registry.getToolDefinitions();
       const toolNames = tools.map(t => t.name).sort();
 
       expect(toolNames).toEqual([
-        'checkpoint', 'context_query', 'decision', 'entity',
-        'graph', 'hooks', 'index', 'memory',
-        'message', 'project', 'reflection', 'session',
+        'context_query', 'entity', 'graph', 'index', 'project',
       ]);
     });
 

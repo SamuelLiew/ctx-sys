@@ -3,6 +3,18 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { GLOBAL_SCHEMA, createProjectTables, dropProjectTables } from './schema';
 import { Logger, consoleLogger } from '../utils/logger';
+import { V1DatabaseDetectedError } from '../errors';
+
+/** v1 conversational-memory tables removed in v2 F1.0; presence of any of
+ *  these is a strong signal the DB is from 1.x and must be re-indexed. */
+const V1_LEGACY_TABLES = [
+  'sessions',
+  'messages',
+  'decisions',
+  'checkpoints',
+  'reflections',
+  'memory_items',
+] as const;
 
 /**
  * Attempt to load sqlite-vec. Returns null if unavailable (unsupported platform, missing binary).
@@ -54,6 +66,13 @@ export class DatabaseConnection {
 
     this.db = new Database(this.dbPath);
 
+    // v2 F1.0: detect v1 schemas at startup and fail loudly with a
+    // typed CtxError pointing at the upgrade path. Without this check,
+    // a 1.x → 2.x upgrade would hit cryptic "no such table: sessions"
+    // SQL errors on first query. Done before sqlite-vec load and before
+    // any schema is applied, so it works against an unmodified v1 DB.
+    DatabaseConnection.checkForV1Schema(this.db, this.dbPath);
+
     // Load sqlite-vec extension for native vector search
     if (sqliteVecModule) {
       try {
@@ -76,6 +95,44 @@ export class DatabaseConnection {
 
     // Create global schema
     this.exec(GLOBAL_SCHEMA);
+  }
+
+  /**
+   * v2 F1.0: detect ctx-sys 1.x databases at startup. If any per-project
+   * table contains a v1-only suffix (`_sessions`, `_messages`,
+   * `_decisions`, `_checkpoints`, `_reflections`, `_memory_items`), the
+   * caller is upgrading a 1.x project. Throw with a clear fix hint
+   * instead of leaving the user to discover the breakage through SQL
+   * errors later.
+   *
+   * Looking for the suffix (not the bare name) because per-project
+   * tables are namespaced — see `sanitizeProjectId` + `${prefix}_…`.
+   * Static so it can be called before instance state is wired up.
+   */
+  private static checkForV1Schema(db: Database.Database, dbPath: string): void {
+    try {
+      const rows = db
+        .prepare(
+          "SELECT name FROM sqlite_master WHERE type IN ('table','virtual table') AND name LIKE ? ESCAPE '\\'"
+        )
+        .all('%\\_%') as Array<{ name: string }>;
+      const legacy = new Set<string>();
+      for (const row of rows) {
+        for (const suffix of V1_LEGACY_TABLES) {
+          if (row.name.endsWith(`_${suffix}`) || row.name === suffix) {
+            legacy.add(suffix);
+          }
+        }
+      }
+      if (legacy.size > 0) {
+        throw new V1DatabaseDetectedError(dbPath, Array.from(legacy).sort());
+      }
+    } catch (err) {
+      if (err instanceof V1DatabaseDetectedError) throw err;
+      // Any other failure (malformed DB, sqlite_master unreadable) is
+      // not a v1-detection signal; let the rest of initialize() surface
+      // it through the normal error path.
+    }
   }
 
   /**

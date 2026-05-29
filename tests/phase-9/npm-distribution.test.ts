@@ -134,14 +134,7 @@ describe('F9.5 NPM Distribution', () => {
       expect(content).toContain('CtxSysMcpServer');
     });
 
-    it('should export hooks module', () => {
-      const indexPath = path.join(ROOT_DIR, 'src/index.ts');
-      const content = fs.readFileSync(indexPath, 'utf-8');
-
-      expect(content).toContain('HookInstaller');
-      expect(content).toContain('HookHandler');
-      expect(content).toContain('ImpactAnalyzer');
-    });
+    // v2 F1.0: hooks / conversation / agent modules removed.
 
     it('should have CLI entry point', () => {
       const cliPath = path.join(ROOT_DIR, 'src/cli/index.ts');
@@ -181,6 +174,7 @@ describe('F9.5 NPM Distribution', () => {
   });
 
   describe('Module Structure', () => {
+    // v2 F1.0: conversation / agent / hooks modules removed.
     const modules = [
       'config',
       'db',
@@ -193,14 +187,11 @@ describe('F9.5 NPM Distribution', () => {
       'indexer',
       'relationships',
       'git',
-      'conversation',
       'documents',
       'graph',
       'retrieval',
       'models',
-      'watch',
-      'agent',
-      'hooks'
+      'watch'
     ];
 
     modules.forEach(moduleName => {

@@ -176,13 +176,12 @@ describe('F1.1 Database Schema', () => {
     });
 
     it('should return correct project table names', () => {
+      // v2 F1.0: _sessions / _messages dropped alongside the conversation layer.
       const tables = getProjectTableNames('test-proj');
       expect(tables).toContain('p_test_proj_entities');
       expect(tables).toContain('p_test_proj_vector_meta');
       expect(tables).toContain('p_test_proj_vec');
       expect(tables).toContain('p_test_proj_relationships');
-      expect(tables).toContain('p_test_proj_sessions');
-      expect(tables).toContain('p_test_proj_messages');
       expect(tables).toContain('p_test_proj_ast_cache');
     });
 

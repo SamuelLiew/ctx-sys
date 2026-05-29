@@ -86,26 +86,3 @@ export function isDocumentType(s: string): s is DocumentType {
   return DOCUMENT_TYPES.has(s);
 }
 
-// ─────────────────────────────────────────────────────────
-// Hook type
-// ─────────────────────────────────────────────────────────
-
-export type HookType = 'post-commit' | 'post-merge' | 'pre-push';
-
-const HOOK_TYPES: ReadonlySet<string> = new Set(['post-commit', 'post-merge', 'pre-push']);
-
-export function isHookType(s: string): s is HookType {
-  return HOOK_TYPES.has(s);
-}
-
-// ─────────────────────────────────────────────────────────
-// TriggerType (checkpoints)
-// ─────────────────────────────────────────────────────────
-
-import { TriggerType } from '../agent/checkpoints';
-
-const TRIGGER_TYPES: ReadonlySet<string> = new Set(['auto', 'manual', 'error']);
-
-export function isTriggerType(s: string): s is TriggerType {
-  return TRIGGER_TYPES.has(s);
-}

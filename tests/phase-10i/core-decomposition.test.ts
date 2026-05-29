@@ -7,11 +7,8 @@ import { CoreService } from '../../src/services/core-service';
 import { ProjectService } from '../../src/services/project-service';
 import { EntityService } from '../../src/services/entity-service';
 import { IndexingService } from '../../src/services/indexing-service';
-import { ConversationService } from '../../src/services/conversation-service';
 import { GraphService } from '../../src/services/graph-service';
 import { RetrievalService } from '../../src/services/retrieval-service';
-import { AgentService } from '../../src/services/agent-service';
-import { HooksService } from '../../src/services/hooks-service';
 
 // Minimal mock AppContext
 function mockContext(): any {
@@ -46,17 +43,16 @@ function mockContext(): any {
 }
 
 describe('CoreService Decomposition', () => {
-  it('should expose all 8 domain services', () => {
+  it('should expose all 5 surviving domain services', () => {
+    // v2 F1.0: conversation, agent (checkpoint / memory / reflection), and
+    // hooks domains removed. CoreService is now five services.
     const core = new CoreService(mockContext());
 
     expect(core.projects).toBeInstanceOf(ProjectService);
     expect(core.entities).toBeInstanceOf(EntityService);
     expect(core.indexing).toBeInstanceOf(IndexingService);
-    expect(core.conversations).toBeInstanceOf(ConversationService);
     expect(core.graph).toBeInstanceOf(GraphService);
     expect(core.retrieval).toBeInstanceOf(RetrievalService);
-    expect(core.agent).toBeInstanceOf(AgentService);
-    expect(core.hooks).toBeInstanceOf(HooksService);
   });
 
   it('should delegate createProject to ProjectService', async () => {

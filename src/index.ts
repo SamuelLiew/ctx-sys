@@ -9,6 +9,7 @@ export {
   NotFoundError,
   AlreadyExistsError,
   DatabaseError,
+  V1DatabaseDetectedError,
   ProviderUnavailableError
 } from './errors';
 
@@ -33,7 +34,6 @@ export {
   IndexingConfig,
   SummarizationConfig as ConfigSummarizationConfig,
   EmbeddingsConfig,
-  SessionsConfig,
   RetrievalConfig as ConfigRetrievalConfig
 } from './config';
 
@@ -126,27 +126,7 @@ export {
   ChangedSymbol
 } from './git';
 
-// Conversation Memory
-export {
-  MessageStore,
-  MessageInput,
-  SessionManager,
-  ConversationSummarizer,
-  SummaryProvider,
-  MockSummaryProvider,
-  SummarizerOptions,
-  DecisionExtractor,
-  MockDecisionProvider,
-  Message,
-  MessageMetadata,
-  ToolCall,
-  MessageQueryOptions,
-  Session,
-  SessionConfig,
-  ConversationSummary,
-  Decision,
-  DecisionInput
-} from './conversation';
+// v2 F1.0: conversation memory removed.
 
 // Application Context
 export { AppContext, getDefaultDbPath } from './context';
@@ -268,79 +248,6 @@ export {
   createFileWatcher
 } from './watch';
 
-// Agent Checkpointing and Memory Management
-export {
-  CheckpointManager,
-  TriggerType,
-  StepStatus,
-  PlanStep,
-  StepResult,
-  AgentState,
-  CheckpointMetadata,
-  Checkpoint,
-  CheckpointSummary,
-  SaveOptions,
-  CheckpointedExecutor,
-  ExecuteOptions,
-  ExecutionResult,
-  StepExecutor,
-  createStepExecutor,
-  MemoryTierManager,
-  MemoryTier,
-  MemoryItemType,
-  MemoryItem,
-  MemoryStatus,
-  MemorySuggestion,
-  SpillResult,
-  RecallResult,
-  MemoryConfig,
-  DEFAULT_MEMORY_CONFIG,
-  SpillOptions,
-  RecallOptions,
-  AddMemoryOptions,
-  MemoryEmbeddingProvider,
-  ReflectionStore,
-  ReflectionOutcome,
-  Reflection,
-  ReflectionInput,
-  ReflectionQuery,
-  ReflectionSummary,
-  ReflectionConfig,
-  DEFAULT_REFLECTION_CONFIG,
-  ReflectionEmbeddingProvider,
-  ProactiveContextProvider,
-  ProactiveTriggerType,
-  SuggestionType,
-  SuggestionStatus,
-  WatchPatternType,
-  CallbackType,
-  WatchPattern,
-  ContextSubscription,
-  SubscriptionInput,
-  SuggestionItem,
-  ContextSuggestion,
-  ProactiveQuery,
-  ProactiveConfig,
-  DEFAULT_PROACTIVE_CONFIG,
-  ProactiveContextSource
-} from './agent';
-
-// Git Hooks
-export {
-  HookInstaller,
-  HookHandler,
-  ImpactAnalyzer,
-  AnalyzeOptions,
-  ToolClient,
-  HookConfig,
-  HookEvent,
-  HookResult,
-  ImpactReport,
-  AffectedEntity,
-  AffectedDecision,
-  RelatedContext,
-  InstallResult,
-  HookExecution,
-  ChangedFiles,
-  DEFAULT_HOOK_CONFIG
-} from './hooks';
+// v2 F1.0: agent-patterns layer (checkpoints / memory / reflection /
+// proactive) and the git-hooks layer were removed alongside the
+// conversational-memory tools they supported.

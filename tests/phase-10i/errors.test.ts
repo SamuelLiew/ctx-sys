@@ -74,8 +74,8 @@ describe('OllamaModelNotFoundError', () => {
 
 describe('NotFoundError', () => {
   it('should set code based on resource type', () => {
+    // v2 F1.0: 'Session' branch removed alongside SESSION_NOT_FOUND.
     expect(new NotFoundError('Project', 'foo').code).toBe('PROJECT_NOT_FOUND');
-    expect(new NotFoundError('Session', 'abc').code).toBe('SESSION_NOT_FOUND');
     expect(new NotFoundError('Entity', '123').code).toBe('ENTITY_NOT_FOUND');
   });
 });

@@ -35,7 +35,7 @@ export class CtxSysMcpServer {
           resources: {},
           prompts: {}
         },
-        instructions: 'Context management system for AI coding assistants. Use tools to manage projects, entities, and semantic search.'
+        instructions: 'Local hybrid RAG over a code knowledge graph. Use `context_query` for hybrid retrieval (vector + FTS + graph) before reading or writing code; use `entity`, `graph`, and `index` to inspect or maintain the indexed corpus. Conversational memory is owned by sibling tools (lean-ctx / mem0 / Claude Code native memory); ADRs are plain markdown in the repo and surfaced by `context_query` via the document indexer.'
       }
     );
 

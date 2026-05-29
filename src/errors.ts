@@ -10,11 +10,11 @@ export type ErrorCode =
   | 'EMBEDDING_FAILED'
   | 'DATABASE_ERROR'
   | 'DATABASE_LOCKED'
+  | 'V1_DATABASE_DETECTED'
   | 'PROJECT_NOT_FOUND'
   | 'PROJECT_EXISTS'
   | 'ENTITY_NOT_FOUND'
   | 'ENTITY_EXISTS'
-  | 'SESSION_NOT_FOUND'
   | 'INVALID_INPUT'
   | 'FILE_NOT_FOUND'
   | 'PARSE_ERROR'
@@ -77,14 +77,12 @@ export class OllamaModelNotFoundError extends CtxError {
   }
 }
 
-/** A resource (project, entity, session) was not found. */
+/** A resource (project, entity) was not found. */
 export class NotFoundError extends CtxError {
   constructor(resource: string, identifier: string) {
     super(
       `${resource} not found: ${identifier}`,
-      resource === 'Project' ? 'PROJECT_NOT_FOUND'
-        : resource === 'Session' ? 'SESSION_NOT_FOUND'
-        : 'ENTITY_NOT_FOUND',
+      resource === 'Project' ? 'PROJECT_NOT_FOUND' : 'ENTITY_NOT_FOUND',
     );
     this.name = 'NotFoundError';
   }
@@ -114,6 +112,23 @@ export class DatabaseError extends CtxError {
       cause,
     );
     this.name = 'DatabaseError';
+  }
+}
+
+/**
+ * Detected at startup when ctx-sys 2.0 opens a database that still
+ * carries the v1 conversational-memory tables (sessions, messages,
+ * decisions, checkpoints, reflections, memory_items). v2 made the
+ * tool-cut and schema-trim breaking — there is no automatic migration.
+ */
+export class V1DatabaseDetectedError extends CtxError {
+  constructor(dbPath: string, foundTables: string[]) {
+    super(
+      `Database at ${dbPath} is from ctx-sys 1.x (found legacy tables: ${foundTables.join(', ')})`,
+      'V1_DATABASE_DETECTED',
+      'ctx-sys 2.0 does not migrate v1 data. Delete the .ctx-sys/ directory and run `ctx-sys index` to rebuild against the 2.x schema. Export any session / decision data you want to keep from 1.x BEFORE upgrading.',
+    );
+    this.name = 'V1DatabaseDetectedError';
   }
 }
 

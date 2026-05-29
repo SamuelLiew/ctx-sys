@@ -22,12 +22,6 @@ export interface CreateEntityInput {
   metadata?: Record<string, unknown>;
 }
 
-export interface CreateMessageInput {
-  role: 'user' | 'assistant' | 'system';
-  content: string;
-  metadata?: Record<string, unknown>;
-}
-
 export interface CreateRelationshipInput {
   sourceId: string;
   targetId: string;
@@ -120,35 +114,6 @@ export interface ContextSource {
 }
 
 // ─────────────────────────────────────────────────────────
-// CONVERSATION
-// ─────────────────────────────────────────────────────────
-
-export interface SessionListOptions {
-  status?: 'active' | 'archived' | 'summarized';
-  limit?: number;
-}
-
-export interface MessageQueryOptions {
-  sessionId?: string;
-  role?: 'user' | 'assistant' | 'system';
-  limit?: number;
-  before?: string | Date;
-  after?: string | Date;
-  offset?: number;
-}
-
-export interface HistoryOptions {
-  sessionId?: string;
-  limit?: number;
-  before?: string;
-}
-
-export interface DecisionSearchOptions {
-  limit?: number;
-  sessionId?: string;
-}
-
-// ─────────────────────────────────────────────────────────
 // GRAPH
 // ─────────────────────────────────────────────────────────
 
@@ -188,72 +153,6 @@ export interface GraphStats {
   totalEdges: number;
   averageDegree: number;
   byType: Record<string, number>;
-}
-
-// ─────────────────────────────────────────────────────────
-// AGENT
-// ─────────────────────────────────────────────────────────
-
-export interface SpillOptions {
-  threshold?: number;
-}
-
-export interface SpillResult {
-  spilledCount: number;
-  tokensFreed: number;
-}
-
-export interface RecallResult {
-  items: Array<{
-    id: string;
-    content: string;
-    relevance: number;
-  }>;
-  tokensRecalled: number;
-}
-
-export interface MemoryStatus {
-  hotCount: number;
-  coldCount: number;
-  hotTokens: number;
-  coldTokens: number;
-}
-
-export interface CreateReflectionInput {
-  type?: 'lesson' | 'observation' | 'decision';
-  content: string;
-  context?: string;
-  outcome?: 'success' | 'failure' | 'partial';
-  tags?: string[];
-}
-
-export interface ReflectionQueryOptions {
-  type?: string;
-  outcome?: string;
-  limit?: number;
-}
-
-// ─────────────────────────────────────────────────────────
-// HOOKS
-// ─────────────────────────────────────────────────────────
-
-export interface HookConfig {
-  hooks?: ('post-commit' | 'post-merge' | 'pre-push')[];
-  autoIndex?: boolean;
-  summarize?: boolean;
-}
-
-export interface ImpactReport {
-  riskLevel: 'low' | 'medium' | 'high';
-  filesChanged: number;
-  entitiesAffected: number;
-  decisionsAffected: number;
-  suggestions: string[];
-  affectedEntities: Array<{
-    id: string;
-    name: string;
-    type: string;
-  }>;
 }
 
 // ─────────────────────────────────────────────────────────

@@ -2,7 +2,7 @@ import { AppContext } from '../context';
 import { EntityType } from '../entities/types';
 import { CoreService } from '../services';
 import { ProjectConfig } from '../project/types';
-import { isIndexDepth, isDocumentType, isSearchStrategy, isHookType, isGraphRelationshipType, asGraphRelationshipType } from '../utils/type-guards';
+import { isIndexDepth, isDocumentType, isSearchStrategy, isGraphRelationshipType, asGraphRelationshipType } from '../utils/type-guards';
 
 /**
  * Tool definition for MCP.
@@ -25,8 +25,14 @@ interface RegisteredTool {
 }
 
 /**
- * F10i.9: Consolidated MCP tool registry.
- * 30 tools → 12 action-based tools.
+ * MCP tool registry. v2 F1.0: trimmed from 12 action-based tools to 5.
+ *
+ * Surviving tools cover the core "hybrid RAG over a code knowledge graph"
+ * surface: `project`, `entity`, `index`, `graph`, `context_query`. The
+ * conversational-memory layer (`session` / `message` / `decision` /
+ * `checkpoint` / `reflection` / `memory`) and the `hooks` git-integration
+ * tool were removed — those domains are owned better by sibling tools
+ * (lean-ctx, mem0, Claude Code native memory) or by plain-markdown ADRs.
  */
 export class ToolRegistry {
   private tools: Map<string, RegisteredTool> = new Map();
@@ -70,15 +76,8 @@ export class ToolRegistry {
     this.registerProjectTool();
     this.registerEntityTool();
     this.registerIndexTool();
-    this.registerSessionTool();
-    this.registerMessageTool();
-    this.registerDecisionTool();
     this.registerGraphTool();
     this.registerContextQueryTool();
-    this.registerCheckpointTool();
-    this.registerMemoryTool();
-    this.registerReflectionTool();
-    this.registerHooksTool();
   }
 
   // ── 1. project ───────────────────────────────────────────
@@ -266,174 +265,7 @@ export class ToolRegistry {
     );
   }
 
-  // ── 4. session ───────────────────────────────────────────
-
-  private registerSessionTool(): void {
-    this.register(
-      {
-        name: 'session',
-        description: 'Manage conversation sessions. Actions: create, list, archive, summarize',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            action: { type: 'string', enum: ['create', 'list', 'archive', 'summarize'], description: 'The operation to perform' },
-            session: { type: 'string', description: 'Session ID (for: archive, summarize)' },
-            name: { type: 'string', description: 'Session name (for: create)' },
-            status: { type: 'string', enum: ['active', 'archived', 'summarized'], description: 'Filter by status (for: list)' },
-            project: { type: 'string', description: 'Target project (default: active)' },
-          },
-          required: ['action'],
-        },
-      },
-      async (args) => {
-        const a = args as Record<string, any>;
-        const projectId = await this.resolveProjectId(a.project);
-        switch (a.action) {
-          case 'create': {
-            const session = await this.coreService.createSession(projectId, a.name);
-            return { success: true, session: { id: session.id, name: session.name } };
-          }
-          case 'list': {
-            const sessions = await this.coreService.listSessions(projectId, { status: a.status });
-            return {
-              success: true, count: sessions.length,
-              sessions: sessions.map(s => ({
-                id: s.id, name: s.name, status: s.status,
-                messageCount: s.messageCount, createdAt: s.createdAt.toLocaleString(),
-              })),
-            };
-          }
-          case 'archive': {
-            this.requireParams(a, ['session']);
-            await this.coreService.archiveSession(projectId, a.session);
-            return { success: true, archived: a.session };
-          }
-          case 'summarize': {
-            this.requireParams(a, ['session']);
-            const summary = await this.coreService.summarizeSession(projectId, a.session);
-            return { success: true, sessionId: a.session, summary };
-          }
-          default:
-            throw new Error(`Unknown action: ${a.action}. Valid: create, list, archive, summarize`);
-        }
-      },
-    );
-  }
-
-  // ── 5. message ───────────────────────────────────────────
-
-  private registerMessageTool(): void {
-    this.register(
-      {
-        name: 'message',
-        description: 'Store and retrieve conversation messages. Actions: store (save a message), history (get messages)',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            action: { type: 'string', enum: ['store', 'history'], description: 'The operation to perform' },
-            content: { type: 'string', description: 'Message content (for: store)' },
-            role: { type: 'string', enum: ['user', 'assistant', 'system'], description: 'Message role (for: store)' },
-            session: { type: 'string', description: 'Session ID (auto-creates if not specified)' },
-            metadata: { type: 'object', description: 'Additional metadata (for: store)' },
-            limit: { type: 'number', description: 'Max messages (for: history, default: 50)' },
-            before: { type: 'string', description: 'Get messages before this ID (for: history)' },
-            project: { type: 'string', description: 'Target project (default: active)' },
-          },
-          required: ['action'],
-        },
-      },
-      async (args) => {
-        const a = args as Record<string, any>;
-        const projectId = await this.resolveProjectId(a.project);
-        switch (a.action) {
-          case 'store': {
-            this.requireParams(a, ['content', 'role']);
-            let sessionId: string;
-            if (!a.session) {
-              const newSession = await this.coreService.createSession(projectId);
-              sessionId = newSession.id;
-            } else {
-              sessionId = await this.resolveSessionId(projectId, a.session);
-            }
-            const message = await this.coreService.storeMessage(projectId, sessionId, {
-              role: a.role, content: a.content, metadata: a.metadata,
-            });
-            return { success: true, message: { id: message.id, sessionId: message.sessionId } };
-          }
-          case 'history': {
-            const messages = await this.coreService.getHistory(projectId, {
-              sessionId: a.session, limit: a.limit || 50, before: a.before,
-            });
-            return {
-              success: true, count: messages.length,
-              messages: messages.map(m => ({
-                id: m.id, role: m.role, content: m.content,
-                sessionId: m.sessionId, timestamp: m.createdAt.toLocaleString(),
-                timestampUtc: m.createdAt.toISOString(),
-              })),
-            };
-          }
-          default:
-            throw new Error(`Unknown action: ${a.action}. Valid: store, history`);
-        }
-      },
-    );
-  }
-
-  // ── 6. decision ──────────────────────────────────────────
-
-  private registerDecisionTool(): void {
-    this.register(
-      {
-        name: 'decision',
-        description: 'Search and create architectural decisions. Actions: search, create',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            action: { type: 'string', enum: ['search', 'create'], description: 'The operation to perform' },
-            query: { type: 'string', description: 'Search query (for: search)' },
-            limit: { type: 'number', description: 'Max results (for: search, default: 10)' },
-            session: { type: 'string', description: 'Session ID (for: create)' },
-            description: { type: 'string', description: 'Decision description (for: create)' },
-            context: { type: 'string', description: 'Decision context (for: create)' },
-            alternatives: { type: 'array', items: { type: 'string' }, description: 'Alternatives considered (for: create)' },
-            project: { type: 'string', description: 'Target project (default: active)' },
-          },
-          required: ['action'],
-        },
-      },
-      async (args) => {
-        const a = args as Record<string, any>;
-        const projectId = await this.resolveProjectId(a.project);
-        switch (a.action) {
-          case 'search': {
-            this.requireParams(a, ['query']);
-            const decisions = await this.coreService.searchDecisions(projectId, a.query, { limit: a.limit || 10 });
-            return {
-              success: true, count: decisions.length,
-              decisions: decisions.map(d => ({
-                id: d.id, description: d.description,
-                sessionId: d.sessionId, timestamp: d.createdAt.toISOString(),
-              })),
-            };
-          }
-          case 'create': {
-            this.requireParams(a, ['description']);
-            const sessionId = a.session ? await this.resolveSessionId(projectId, a.session) : (await this.coreService.createSession(projectId)).id;
-            const decision = await this.coreService.createDecision(projectId, {
-              sessionId, description: a.description,
-              context: a.context, alternatives: a.alternatives,
-            });
-            return { success: true, decision: { id: decision.id, sessionId: decision.sessionId } };
-          }
-          default:
-            throw new Error(`Unknown action: ${a.action}. Valid: search, create`);
-        }
-      },
-    );
-  }
-
-  // ── 7. graph ─────────────────────────────────────────────
+  // ── 4. graph ─────────────────────────────────────────────
 
   private registerGraphTool(): void {
     this.register(
@@ -493,7 +325,7 @@ export class ToolRegistry {
     );
   }
 
-  // ── 8. context_query (unchanged) ─────────────────────────
+  // ── 5. context_query ─────────────────────────────────────
 
   private registerContextQueryTool(): void {
     this.register(
@@ -546,223 +378,7 @@ export class ToolRegistry {
     );
   }
 
-  // ── 9. checkpoint ────────────────────────────────────────
-
-  private registerCheckpointTool(): void {
-    this.register(
-      {
-        name: 'checkpoint',
-        description: 'Manage agent state checkpoints. Actions: save, load, list, delete',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            action: { type: 'string', enum: ['save', 'load', 'list', 'delete'], description: 'The operation to perform' },
-            session: { type: 'string', description: 'Session/task ID (for: save, load, list)' },
-            state: { type: 'object', description: 'Agent state to save (for: save)' },
-            description: { type: 'string', description: 'Checkpoint description (for: save)' },
-            checkpoint_id: { type: 'string', description: 'Checkpoint ID (for: load specific, delete)' },
-            project: { type: 'string', description: 'Target project (default: active)' },
-          },
-          required: ['action'],
-        },
-      },
-      async (args) => {
-        const a = args as Record<string, any>;
-        const projectId = await this.resolveProjectId(a.project);
-        switch (a.action) {
-          case 'save': {
-            this.requireParams(a, ['session', 'state']);
-            const checkpoint = await this.coreService.saveCheckpoint(projectId, a.session, a.state, { description: a.description });
-            return { success: true, checkpointId: checkpoint.id, stepNumber: checkpoint.stepNumber };
-          }
-          case 'load': {
-            this.requireParams(a, ['session']);
-            const checkpoint = await this.coreService.loadCheckpoint(projectId, a.session, a.checkpoint_id);
-            if (!checkpoint) return { success: false, error: 'No checkpoint found' };
-            return {
-              success: true,
-              checkpoint: {
-                id: checkpoint.id, stepNumber: checkpoint.stepNumber,
-                state: checkpoint.state.context ?? checkpoint.state,
-                createdAt: checkpoint.createdAt.toISOString(),
-              },
-            };
-          }
-          case 'list': {
-            this.requireParams(a, ['session']);
-            const checkpoints = await this.coreService.listCheckpoints(projectId, a.session);
-            return {
-              success: true, count: checkpoints.length,
-              checkpoints: checkpoints.map((c: any) => ({
-                id: c.id, stepNumber: c.stepNumber,
-                description: c.description, createdAt: c.createdAt?.toISOString(),
-              })),
-            };
-          }
-          case 'delete': {
-            this.requireParams(a, ['checkpoint_id']);
-            await this.coreService.deleteCheckpoint(projectId, a.checkpoint_id);
-            return { success: true, deleted: a.checkpoint_id };
-          }
-          default:
-            throw new Error(`Unknown action: ${a.action}. Valid: save, load, list, delete`);
-        }
-      },
-    );
-  }
-
-  // ── 10. memory ───────────────────────────────────────────
-
-  private registerMemoryTool(): void {
-    this.register(
-      {
-        name: 'memory',
-        description: 'Manage agent memory tiers. Actions: spill (move to cold storage), recall (retrieve from cold), status (hot/cold distribution)',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            action: { type: 'string', enum: ['spill', 'recall', 'status'], description: 'The operation to perform' },
-            session: { type: 'string', description: 'Session ID' },
-            query: { type: 'string', description: 'Query for relevant items (for: recall)' },
-            threshold: { type: 'number', description: 'Token threshold for spilling (for: spill)' },
-            project: { type: 'string', description: 'Target project (default: active)' },
-          },
-          required: ['action'],
-        },
-      },
-      async (args) => {
-        const a = args as Record<string, any>;
-        const projectId = await this.resolveProjectId(a.project);
-        switch (a.action) {
-          case 'spill': {
-            this.requireParams(a, ['session']);
-            const result = await this.coreService.spillMemory(projectId, a.session, { threshold: a.threshold });
-            return { success: true, ...result };
-          }
-          case 'recall': {
-            this.requireParams(a, ['session', 'query']);
-            const result = await this.coreService.recallMemory(projectId, a.session, a.query);
-            return { success: true, ...result };
-          }
-          case 'status': {
-            const status = await this.coreService.getMemoryStatus(projectId, a.session);
-            return { success: true, ...status };
-          }
-          default:
-            throw new Error(`Unknown action: ${a.action}. Valid: spill, recall, status`);
-        }
-      },
-    );
-  }
-
-  // ── 11. reflection ───────────────────────────────────────
-
-  private registerReflectionTool(): void {
-    this.register(
-      {
-        name: 'reflection',
-        description: 'Store and query agent learning reflections. Actions: store, query',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            action: { type: 'string', enum: ['store', 'query'], description: 'The operation to perform' },
-            session: { type: 'string', description: 'Session ID (for: store)' },
-            content: { type: 'string', description: 'Reflection content (for: store)' },
-            type: { type: 'string', enum: ['lesson', 'observation', 'decision'], description: 'Reflection type (for: store, query filter)' },
-            outcome: { type: 'string', enum: ['success', 'failure', 'partial'], description: 'Outcome (for: store, query filter)' },
-            tags: { type: 'array', items: { type: 'string' }, description: 'Tags (for: store)' },
-            query: { type: 'string', description: 'Search query (for: query)' },
-            project: { type: 'string', description: 'Target project (default: active)' },
-          },
-          required: ['action'],
-        },
-      },
-      async (args) => {
-        const a = args as Record<string, any>;
-        const projectId = await this.resolveProjectId(a.project);
-        switch (a.action) {
-          case 'store': {
-            this.requireParams(a, ['session', 'content']);
-            const sessionId = await this.resolveSessionId(projectId, a.session);
-            const reflection = await this.coreService.storeReflection(projectId, sessionId, {
-              type: a.type, content: a.content, outcome: a.outcome, tags: a.tags,
-            });
-            return {
-              success: true, reflectionId: reflection.id,
-              session_id: reflection.sessionId, outcome: reflection.outcome,
-              tags: reflection.tags, created_at: reflection.createdAt.toISOString(),
-            };
-          }
-          case 'query': {
-            this.requireParams(a, ['query']);
-            const reflections = await this.coreService.searchReflections(projectId, a.query, { type: a.type, outcome: a.outcome });
-            return {
-              success: true, count: reflections.length,
-              reflections: reflections.map(r => ({
-                id: r.id, content: r.taskDescription, outcome: r.outcome,
-                tags: r.tags, created_at: r.createdAt.toISOString(),
-              })),
-            };
-          }
-          default:
-            throw new Error(`Unknown action: ${a.action}. Valid: store, query`);
-        }
-      },
-    );
-  }
-
-  // ── 12. hooks ────────────────────────────────────────────
-
-  private registerHooksTool(): void {
-    this.register(
-      {
-        name: 'hooks',
-        description: 'Manage git hooks. Actions: install (set up auto-indexing hooks), impact_report (analyze pending changes)',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            action: { type: 'string', enum: ['install', 'impact_report'], description: 'The operation to perform' },
-            repo_path: { type: 'string', description: 'Git repository path (for: install, default: project path)' },
-            hooks: { type: 'array', items: { type: 'string' }, description: 'Hooks to install (for: install, default: post-commit)' },
-            base_branch: { type: 'string', description: 'Base branch (for: impact_report, default: main)' },
-            target_branch: { type: 'string', description: 'Target branch (for: impact_report, default: HEAD)' },
-            project: { type: 'string', description: 'Target project (default: active)' },
-          },
-          required: ['action'],
-        },
-      },
-      async (args) => {
-        const a = args as Record<string, any>;
-        const projectId = await this.resolveProjectId(a.project);
-        switch (a.action) {
-          case 'install': {
-            const proj = await this.coreService.getProject(projectId);
-            const repoPath = a.repo_path || proj?.path;
-            if (!repoPath) throw new Error('No repository path specified');
-            const installed = await this.coreService.installHooks(projectId, repoPath, {
-              hooks: a.hooks?.filter(isHookType),
-            });
-            return { success: true, installed };
-          }
-          case 'impact_report': {
-            const report = await this.coreService.getImpactReport(projectId, a.base_branch || 'main', a.target_branch || 'HEAD');
-            return { success: true, ...report };
-          }
-          default:
-            throw new Error(`Unknown action: ${a.action}. Valid: install, impact_report`);
-        }
-      },
-    );
-  }
-
   // ── Utilities ────────────────────────────────────────────
-
-  private async resolveSessionId(projectId: string, session: string): Promise<string> {
-    const existing = await this.coreService.getSession(projectId, session);
-    if (existing) return existing.id;
-    const newSession = await this.coreService.createSession(projectId, session);
-    return newSession.id;
-  }
 
   private async resolveProjectId(projectName?: string): Promise<string> {
     if (projectName) {
