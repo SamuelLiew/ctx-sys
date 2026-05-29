@@ -2,9 +2,7 @@
 
 **Local hybrid RAG over a code knowledge graph.** Index your codebase with tree-sitter AST + embeddings + a relationship graph, and retrieve precise context for any AI coding assistant via MCP. Local-first, code-aware, focused on one thing it does well.
 
-```bash
-npm install -g ctx-sys
-```
+> **Alpha — not yet on npm.** Install from source for now (see [Building from source](#building-from-source)); the `npm install -g ctx-sys` path below applies once the package is published.
 
 ## Why ctx-sys?
 
@@ -22,7 +20,7 @@ ctx-sys focuses on retrieval. Conversational/session memory is intentionally out
 ### 1. Install
 
 ```bash
-npm install -g ctx-sys
+npm install -g ctx-sys   # once published; until then, build from source (see below)
 
 # Install and start Ollama (for embeddings)
 # macOS: brew install ollama
