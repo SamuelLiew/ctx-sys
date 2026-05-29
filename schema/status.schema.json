@@ -1,0 +1,63 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ctx-sys.dev/schema/status.schema.json",
+  "title": "ctx-sys status --json",
+  "description": "Output shape of `ctx-sys status --json`. v2 F1.4: stable contract yaao and other consumers parse against. SemVer-locked to the package version; breaking changes only on major releases.",
+  "type": "object",
+  "required": ["project", "config", "database"],
+  "additionalProperties": true,
+  "properties": {
+    "project": {
+      "type": "object",
+      "required": ["path", "name", "initialized"],
+      "additionalProperties": false,
+      "properties": {
+        "path": { "type": "string", "description": "Absolute path of the project root the status was computed for." },
+        "name": { "type": "string", "description": "Project name from .ctx-sys/config.yaml, or the basename of the path if uninitialized." },
+        "initialized": { "type": "boolean", "description": "True if a project-local config.yaml exists." }
+      }
+    },
+    "config": {
+      "type": "object",
+      "required": ["global", "project", "database"],
+      "additionalProperties": false,
+      "properties": {
+        "global": { "type": "boolean", "description": "True if ~/.ctx-sys/config.yaml exists." },
+        "project": { "type": "boolean", "description": "True if a project-local config.yaml exists." },
+        "database": { "type": "string", "description": "Resolved database path the engine will use." }
+      }
+    },
+    "database": {
+      "type": "object",
+      "required": ["exists", "sizeBytes"],
+      "additionalProperties": false,
+      "properties": {
+        "exists": { "type": "boolean", "description": "True if the database file is present on disk." },
+        "sizeBytes": { "type": "integer", "minimum": 0, "description": "Size of the database file in bytes (0 when not present)." }
+      }
+    },
+    "checks": {
+      "type": "array",
+      "description": "Present only when `--check` was passed. Each entry is a health-check result.",
+      "items": {
+        "type": "object",
+        "required": ["name", "status"],
+        "additionalProperties": true,
+        "properties": {
+          "name": { "type": "string" },
+          "status": { "type": "string", "enum": ["ok", "warn", "fail"] },
+          "detail": { "type": "string" },
+          "fix": { "type": "string" }
+        }
+      }
+    },
+    "passed":  { "type": "integer", "minimum": 0, "description": "Present only when `--check` was passed." },
+    "warned":  { "type": "integer", "minimum": 0, "description": "Present only when `--check` was passed." },
+    "failed":  { "type": "integer", "minimum": 0, "description": "Present only when `--check` was passed." },
+    "recommendations": {
+      "type": "array",
+      "description": "Present only when `--check` was passed. Recovery hints aggregated from failing checks.",
+      "items": { "type": "string" }
+    }
+  }
+}

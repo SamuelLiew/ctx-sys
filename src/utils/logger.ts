@@ -10,12 +10,30 @@ export interface Logger {
   error(message: string, ...args: unknown[]): void;
 }
 
-/** Default logger that writes to console. Debug is silent by default. */
+/**
+ * Default logger. Debug is silent by default. Everything that *does*
+ * log goes to stderr — never stdout — so the MCP stdio transport
+ * (which owns stdout for JSON-RPC) is never polluted by library logs
+ * (v2 F1.4: stdio hygiene).
+ *
+ * CLI commands that intentionally render to stdout do so through
+ * `CLIOutput` in cli/init.ts, not through this logger.
+ */
+function stderr(msg: string, args: unknown[]): void {
+  const line = args.length === 0 ? `${msg}\n` : `${msg} ${args.map(a => safeStringify(a)).join(' ')}\n`;
+  process.stderr.write(line);
+}
+
+function safeStringify(v: unknown): string {
+  if (typeof v === 'string') return v;
+  try { return JSON.stringify(v); } catch { return String(v); }
+}
+
 export const consoleLogger: Logger = {
   debug: () => {},
-  info: (msg, ...args) => console.log(msg, ...args),
-  warn: (msg, ...args) => console.warn(msg, ...args),
-  error: (msg, ...args) => console.error(msg, ...args),
+  info:  (msg, ...args) => stderr(msg, args),
+  warn:  (msg, ...args) => stderr(msg, args),
+  error: (msg, ...args) => stderr(msg, args),
 };
 
 /** Silent logger for tests and library consumers who want no output. */
@@ -33,13 +51,16 @@ const LEVEL_ORDER: Record<LogLevel, number> = {
   debug: 0, info: 1, warn: 2, error: 3, silent: 4
 };
 
-/** Create a logger that filters messages below the given minimum level. */
+/**
+ * Create a logger that filters messages below the given minimum level.
+ * v2 F1.4: every level lands on stderr — never stdout — for stdio hygiene.
+ */
 export function createLogger(minLevel: LogLevel = 'warn'): Logger {
   const min = LEVEL_ORDER[minLevel];
   return {
-    debug: min <= 0 ? (msg, ...a) => console.debug(msg, ...a) : () => {},
-    info:  min <= 1 ? (msg, ...a) => console.log(msg, ...a) : () => {},
-    warn:  min <= 2 ? (msg, ...a) => console.warn(msg, ...a) : () => {},
-    error: min <= 3 ? (msg, ...a) => console.error(msg, ...a) : () => {},
+    debug: min <= 0 ? (msg, ...a) => stderr(msg, a) : () => {},
+    info:  min <= 1 ? (msg, ...a) => stderr(msg, a) : () => {},
+    warn:  min <= 2 ? (msg, ...a) => stderr(msg, a) : () => {},
+    error: min <= 3 ? (msg, ...a) => stderr(msg, a) : () => {},
   };
 }

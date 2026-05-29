@@ -10,9 +10,14 @@
   },
   "files": [
     "dist",
+    "schema",
     "README.md",
     "LICENSE"
   ],
+  "exports": {
+    ".": "./dist/index.js",
+    "./schema/*.json": "./schema/*.json"
+  },
   "scripts": {
     "build": "tsc",
     "start": "node dist/cli/index.js",
