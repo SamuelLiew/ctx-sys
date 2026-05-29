@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
+import type { Readable, Writable } from 'node:stream';
 import { AppContext } from '../context';
 import { ToolRegistry, Tool } from './tool-registry';
 import { CtxError } from '../errors';
@@ -155,12 +156,19 @@ export class CtxSysMcpServer {
   }
 
   /**
-   * Start the server with stdio transport.
+   * Start the server. Defaults to the stdio transport (reads from
+   * process.stdin / writes to process.stdout). v2 F1.3: callers can
+   * pass an explicit pair of streams to bridge MCP over any duplex
+   * channel — used by `ctx-sys serve --socket <path>` so parents
+   * (yaao, etc.) can spawn ctx-sys and talk to it over a UDS without
+   * sharing the child's stdio.
    */
-  async start(): Promise<void> {
+  async start(input?: Readable, output?: Writable): Promise<void> {
     await this.initialize();
 
-    const transport = new StdioServerTransport();
+    const transport = (input && output)
+      ? new StdioServerTransport(input, output)
+      : new StdioServerTransport();
     await this.mcp.connect(transport);
   }
 
