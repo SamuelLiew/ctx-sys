@@ -135,7 +135,9 @@ ctx-sys doctor                    # v2 F2.2: provider + native-module + Node ver
 
 ```bash
 # Index
-ctx-sys index --no-doc            # Skip document indexing
+ctx-sys index --no-doc            # Skip document indexing (alias for --content code)
+ctx-sys index --content docs      # v2: documentation only (skip code indexing)
+ctx-sys index --content code      # v2: code only
 ctx-sys index --no-embed          # Skip embedding generation
 ctx-sys index --force             # Re-index everything from scratch
 
@@ -240,6 +242,10 @@ project:
   name: my-project
 
 indexing:
+  content: both          # v2: both (default) | code | docs (documentation only)
+  # doc_extensions:      # v2: override which extensions count as docs.
+  #   - .md              # 'docs' mode defaults to prose (.md, .mdx, .txt, .rst, .pdf);
+  #   - .txt             # 'both' mode otherwise indexes the full document set.
   ignore:
     - node_modules
     - dist
@@ -256,6 +262,10 @@ summarization:           # optional
 hyde:                    # optional
   model: gemma3:12b      # v2: gemma3:270m (lighter; remains opt-in)
 ```
+
+> **v2 — `indexing.content` (merged on `main`; ships in 2.0).** Controls what gets indexed: `both` (default, code + docs), `code` (AST entities only — same as `--no-doc`), or `docs` (documentation only, skips code). In `docs` mode the documentation set defaults to prose (`.md`, `.mdx`, `.txt`, `.rst`, `.pdf`) — set `indexing.doc_extensions` to widen or narrow it in any mode. Embeddings still run over the indexed documents. Since `reindex` and `watch` only handle code, they become no-ops in `docs` mode (refresh docs with `ctx-sys index`). Switching an existing project to `docs` won't remove already-indexed code entities — delete `.ctx-sys/` and re-index for a clean docs-only store. The `--content <mode>` CLI flag overrides config per run.
+
+<!-- -->
 
 > **v2 (merged on `main`; ships in 2.0):** `ctx-sys init` writes a seeded `.ctxignore` (build outputs, dependencies, `.yaao/` / `.lean-ctx/`, lockfiles, secrets) and `.gitignore` is no longer read by default. Opt in with `indexing.use_gitignore: true` in config, or pass `--use-gitignore` on the CLI. See [F1.1](docs/v2/phase-1/F1.1-ignore-file-defaults.md).
 

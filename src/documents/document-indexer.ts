@@ -76,6 +76,14 @@ const EXTENSION_MAP: Record<string, DocumentType> = {
   '.pdf': 'pdf',
 };
 
+/**
+ * Prose documentation extensions — the default set for `indexing.content: docs`
+ * mode. Narrower than the full EXTENSION_MAP: actual documentation, not data
+ * or config files (json/yaml/toml/xml/csv). `.rst` has no dedicated parser and
+ * is indexed as plain text. Override via `indexing.doc_extensions`.
+ */
+export const PROSE_DOC_EXTENSIONS = ['.md', '.mdx', '.txt', '.rst', '.pdf'];
+
 export class DocumentIndexer {
   private markdownParser: MarkdownParser;
   private requirementExtractor: RequirementExtractor;

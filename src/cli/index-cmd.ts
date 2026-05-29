@@ -14,8 +14,11 @@ import { RelationshipStore } from '../graph/relationship-store';
 import { EmbeddingManager } from '../embeddings/manager';
 import { OllamaEmbeddingProvider } from '../embeddings/ollama';
 import { preflightProvider, withLoadingIndicator } from '../embeddings';
-import { DocumentIndexer } from '../documents/document-indexer';
+import { DocumentIndexer, PROSE_DOC_EXTENSIONS } from '../documents/document-indexer';
+import { InvalidInputError } from '../errors';
 import { CLIOutput, defaultOutput } from './init';
+
+type IndexContent = 'both' | 'code' | 'docs';
 
 /**
  * Create the index command.
@@ -31,7 +34,8 @@ export function createIndexCommand(output: CLIOutput = defaultOutput): Command {
     .option('--exclude <patterns>', 'Comma-separated glob patterns to exclude')
     .option('-q, --quiet', 'Suppress progress output', false)
     .option('-d, --db <path>', 'Custom database path')
-    .option('--no-doc', 'Skip documentation indexing')
+    .option('--no-doc', 'Skip documentation indexing (alias for --content code)')
+    .option('--content <mode>', "What to index: 'both' (default), 'code', or 'docs' (documentation only)")
     .option('--doc-path <path>', 'Index specific doc file or directory')
     .option('--no-embed', 'Skip embedding generation')
     .option('--embed-batch-size <n>', 'Batch size for embedding generation', '50')
@@ -42,6 +46,7 @@ Examples:
   ctx-sys index                        # incremental update of the current dir
   ctx-sys index --force                # re-index from scratch
   ctx-sys index --no-embed --no-doc    # AST entities only (skip embeddings + docs)
+  ctx-sys index --content docs         # documentation only (skip code indexing)
   ctx-sys index --include "src/**"     # only walk a subset
   ctx-sys index --use-gitignore        # also respect .gitignore patterns
 
@@ -76,6 +81,7 @@ async function runIndex(
     quiet?: boolean;
     db?: string;
     doc?: boolean;
+    content?: string;
     docPath?: string;
     embed?: boolean;
     embedBatchSize?: string;
@@ -110,88 +116,125 @@ async function runIndex(
     const entityStore = new EntityStore(db, projectId);
     const relationshipStore = new RelationshipStore(db, projectId);
 
-    // Create indexer with relationship extraction
-    const indexer = new CodebaseIndexer(projectPath, entityStore, undefined, undefined, relationshipStore);
-
-    // Build index options. v2 F1.1: useGitignore / useCtxignore come
-    // from CLI flags first, then project config, then sensible defaults
-    // (.gitignore off, .ctxignore on).
-    const cfgIndexing = config.projectConfig.indexing as { use_gitignore?: boolean; use_ctxignore?: boolean; ignore?: string[] };
-    const indexOptions: IndexOptions = {
-      force: options.force,
-      concurrency: parseInt(options.concurrency || '5', 10),
-      include: options.include ? options.include.split(',').map(s => s.trim()) : undefined,
-      exclude: options.exclude
-        ? options.exclude.split(',').map(s => s.trim())
-        : config.projectConfig.indexing.ignore,
-      useGitignore: options.useGitignore ?? cfgIndexing.use_gitignore ?? false,
-      useCtxignore: options.ctxignore ?? cfgIndexing.use_ctxignore ?? true,
+    // v2: resolve what to index. --content wins; --no-doc is back-compat for
+    // 'code'; otherwise fall back to indexing.content config (default 'both').
+    const cfgIndexing = config.projectConfig.indexing as {
+      use_gitignore?: boolean;
+      use_ctxignore?: boolean;
+      ignore?: string[];
+      content?: IndexContent;
+      doc_extensions?: string[];
     };
-
-    // Add progress callback if not quiet
-    if (!options.quiet) {
-      let lastPercent = -1;
-      indexOptions.onProgress = (current: number, total: number, file: string) => {
-        const percent = Math.floor((current / total) * 100);
-        if (percent !== lastPercent && percent % 10 === 0) {
-          output.log(`Progress: ${percent}% (${current}/${total}) - ${path.basename(file)}`);
-          lastPercent = percent;
-        }
-      };
-    }
-
-    // Run indexing
-    const startTime = Date.now();
-    if (!options.quiet) {
-      output.log(`Indexing ${projectPath}...`);
-    }
-
-    let result: IndexResult;
-    if (options.full) {
-      result = await indexer.indexAll(indexOptions);
+    let content: IndexContent;
+    if (options.content !== undefined) {
+      if (options.content !== 'both' && options.content !== 'code' && options.content !== 'docs') {
+        throw new InvalidInputError(
+          `--content must be 'both', 'code', or 'docs' (got '${options.content}')`,
+          "Pass one of: --content both | --content code | --content docs.",
+        );
+      }
+      content = options.content;
+    } else if (options.doc === false) {
+      content = 'code';
     } else {
-      result = await indexer.updateIndex(indexOptions);
+      content = cfgIndexing.content ?? 'both';
     }
 
-    // Display results
-    const duration = (Date.now() - startTime) / 1000;
+    // Index code (AST entities + relationships) unless we're in docs-only mode.
+    if (content !== 'docs') {
+      // Create indexer with relationship extraction
+      const indexer = new CodebaseIndexer(projectPath, entityStore, undefined, undefined, relationshipStore);
 
-    if (!options.quiet) {
-      output.log('');
-      output.success(`Indexing complete in ${duration.toFixed(2)}s`);
-      output.log(`  Added: ${result.added.length} files`);
-      output.log(`  Modified: ${result.modified.length} files`);
-      output.log(`  Deleted: ${result.deleted.length} files`);
-      output.log(`  Unchanged: ${result.unchanged.length} files`);
+      // Build index options. v2 F1.1: useGitignore / useCtxignore come
+      // from CLI flags first, then project config, then sensible defaults
+      // (.gitignore off, .ctxignore on).
+      const indexOptions: IndexOptions = {
+        force: options.force,
+        concurrency: parseInt(options.concurrency || '5', 10),
+        include: options.include ? options.include.split(',').map(s => s.trim()) : undefined,
+        exclude: options.exclude
+          ? options.exclude.split(',').map(s => s.trim())
+          : config.projectConfig.indexing.ignore,
+        useGitignore: options.useGitignore ?? cfgIndexing.use_gitignore ?? false,
+        useCtxignore: options.ctxignore ?? cfgIndexing.use_ctxignore ?? true,
+      };
 
-      if (result.errors.length > 0) {
-        output.log(`  Errors: ${result.errors.length}`);
-        for (const err of result.errors.slice(0, 5)) {
-          output.error(`    ${err.path}: ${err.error}`);
+      // Add progress callback if not quiet
+      if (!options.quiet) {
+        let lastPercent = -1;
+        indexOptions.onProgress = (current: number, total: number, file: string) => {
+          const percent = Math.floor((current / total) * 100);
+          if (percent !== lastPercent && percent % 10 === 0) {
+            output.log(`Progress: ${percent}% (${current}/${total}) - ${path.basename(file)}`);
+            lastPercent = percent;
+          }
+        };
+      }
+
+      // Run indexing
+      const startTime = Date.now();
+      if (!options.quiet) {
+        output.log(`Indexing ${projectPath}...`);
+      }
+
+      let result: IndexResult;
+      if (options.full) {
+        result = await indexer.indexAll(indexOptions);
+      } else {
+        result = await indexer.updateIndex(indexOptions);
+      }
+
+      // Display results
+      const duration = (Date.now() - startTime) / 1000;
+
+      if (!options.quiet) {
+        output.log('');
+        output.success(`Indexing complete in ${duration.toFixed(2)}s`);
+        output.log(`  Added: ${result.added.length} files`);
+        output.log(`  Modified: ${result.modified.length} files`);
+        output.log(`  Deleted: ${result.deleted.length} files`);
+        output.log(`  Unchanged: ${result.unchanged.length} files`);
+
+        if (result.errors.length > 0) {
+          output.log(`  Errors: ${result.errors.length}`);
+          for (const err of result.errors.slice(0, 5)) {
+            output.error(`    ${err.path}: ${err.error}`);
+          }
+          if (result.errors.length > 5) {
+            output.log(`    ... and ${result.errors.length - 5} more errors`);
+          }
         }
-        if (result.errors.length > 5) {
-          output.log(`    ... and ${result.errors.length - 5} more errors`);
+
+        output.log('');
+        output.log('Statistics:');
+        output.log(`  Total files: ${result.stats.totalFiles}`);
+        output.log(`  Total symbols: ${result.stats.totalSymbols}`);
+        if (result.stats.byLanguage) {
+          output.log('  By language:');
+          for (const [lang, count] of Object.entries(result.stats.byLanguage)) {
+            output.log(`    ${lang}: ${count}`);
+          }
         }
       }
 
-      output.log('');
-      output.log('Statistics:');
-      output.log(`  Total files: ${result.stats.totalFiles}`);
-      output.log(`  Total symbols: ${result.stats.totalSymbols}`);
-      if (result.stats.byLanguage) {
-        output.log('  By language:');
-        for (const [lang, count] of Object.entries(result.stats.byLanguage)) {
-          output.log(`    ${lang}: ${count}`);
-        }
-      }
+      // Explicit save after indexing (before potentially slow embedding phase)
+      db.save();
+    } else if (!options.quiet) {
+      output.log('Documentation-only mode (indexing.content: docs) — skipping code indexing.');
     }
 
-    // Explicit save after indexing (before potentially slow embedding phase)
-    db.save();
-
-    // Index documentation files (default: on, --no-doc to skip)
-    if (options.doc !== false) {
+    // Index documentation files (skipped when content === 'code' / --no-doc).
+    if (content !== 'code') {
       const docIndexer = new DocumentIndexer(entityStore, relationshipStore);
+
+      // Which extensions count as documentation. Explicit config wins; else
+      // 'docs' mode narrows to prose, while 'both' keeps the full document set.
+      const docExtensions =
+        cfgIndexing.doc_extensions ?? (content === 'docs' ? PROSE_DOC_EXTENSIONS : undefined);
+      const dirOptions = {
+        ...(docExtensions ? { extensions: docExtensions } : {}),
+        ...(cfgIndexing.ignore ? { exclude: cfgIndexing.ignore } : {}),
+      };
 
       if (options.docPath) {
         // Index specific file or directory
@@ -204,7 +247,7 @@ async function runIndex(
         }
 
         if (stat.isDirectory()) {
-          const docResult = await docIndexer.indexDirectory(absoluteDocPath);
+          const docResult = await docIndexer.indexDirectory(absoluteDocPath, dirOptions);
           db.save();
           if (!options.quiet) {
             output.success(`Documentation indexed: ${docResult.filesProcessed} files (${docResult.filesSkipped} unchanged)`);
@@ -228,7 +271,7 @@ async function runIndex(
           output.log('Indexing documentation files...');
         }
 
-        const docResult = await docIndexer.indexDirectory(projectPath);
+        const docResult = await docIndexer.indexDirectory(projectPath, dirOptions);
         db.save();
 
         if (!options.quiet) {

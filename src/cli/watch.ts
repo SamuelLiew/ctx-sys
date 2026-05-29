@@ -64,6 +64,13 @@ async function runWatch(
   const configManager = new ConfigManager();
   const config = await configManager.resolve(projectPath);
 
+  // `watch` reindexes code only. In docs-only mode there's nothing to watch;
+  // refuse with a clear message rather than silently watching code we won't index.
+  if (config.projectConfig.indexing.content === 'docs') {
+    output.error('Documentation-only mode (indexing.content: docs): `watch` reindexes code only, so there is nothing to watch. Re-run `ctx-sys index` after editing docs.');
+    return;
+  }
+
   // Set up database connection
   const dbPath = options.db || config.database.path;
   const db = new DatabaseConnection(dbPath);

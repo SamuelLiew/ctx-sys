@@ -99,6 +99,14 @@ export async function runReindex(
   }
 
   const cfg = await new ConfigManager().resolve(projectPath);
+  // Docs-only projects don't index code, so the git-aware code reindex is a
+  // no-op. Bail before touching the DB; docs are refreshed via `ctx-sys index`.
+  if (cfg.projectConfig.indexing.content === 'docs') {
+    if (!options.fromGitHook) {
+      output.log('Documentation-only mode (indexing.content: docs) — reindex skips code. Run `ctx-sys index` to refresh docs.');
+    }
+    return;
+  }
   const dbPath = options.db ?? cfg.database.path;
   const projectId = cfg.projectConfig.project.name || path.basename(projectPath);
 

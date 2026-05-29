@@ -92,6 +92,22 @@ export interface IndexingConfig {
   ignore: string[];
   languages?: string[];
   /**
+   * v2: which content to index. 'both' (default) indexes code (AST entities)
+   * + documents; 'code' indexes AST entities only (equivalent to
+   * `index --no-doc`); 'docs' indexes documentation only and skips code
+   * indexing entirely (including from the `reindex`/`watch` paths). The CLI
+   * `--content <mode>` flag overrides this per run.
+   */
+  content?: 'both' | 'code' | 'docs';
+  /**
+   * v2: file extensions treated as documentation (each includes the leading
+   * dot, e.g. `.md`). When unset, 'both' mode indexes the full document set
+   * (markdown/text/pdf plus data + config formats: json/yaml/toml/xml/csv/html)
+   * while 'docs' mode defaults to prose only (.md, .mdx, .txt, .rst, .pdf).
+   * Set this to widen or narrow the set in either mode.
+   */
+  doc_extensions?: string[];
+  /**
    * v2 F1.1: opt in to layering .gitignore on top of .ctxignore + the
    * inline ignore: patterns. Defaults to false; users who want the
    * pre-2.0 behaviour set this true (or pass --use-gitignore).

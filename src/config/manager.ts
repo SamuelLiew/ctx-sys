@@ -408,6 +408,7 @@ export class ConfigManager {
       indexing: {
         mode: 'incremental',
         watch: false,
+        content: 'both',
         ignore: ['node_modules', '.git', '.ctx-sys', 'dist', 'build']
       },
       summarization: {
