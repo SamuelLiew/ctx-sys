@@ -157,11 +157,8 @@ export class CtxSysMcpServer {
 
   /**
    * Start the server. Defaults to the stdio transport (reads from
-   * process.stdin / writes to process.stdout). v2 F1.3: callers can
-   * pass an explicit pair of streams to bridge MCP over any duplex
-   * channel — used by `ctx-sys serve --socket <path>` so parents
-   * (yaao, etc.) can spawn ctx-sys and talk to it over a UDS without
-   * sharing the child's stdio.
+   * process.stdin / writes to process.stdout). Callers can pass an
+   * explicit pair of streams to bridge MCP over any duplex channel.
    */
   async start(input?: Readable, output?: Writable): Promise<void> {
     await this.initialize();

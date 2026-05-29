@@ -1,38 +1,40 @@
 /**
- * v2 F1.4 Part A: stdio hygiene regression test.
+ * stdio hygiene regression test.
  *
  * Locks the rule that `ctx-sys serve` writes nothing but valid JSON-RPC
  * frames to stdout. Any stray console.log from src/ or a transitive dep
- * crashes the MCP client; this test catches that immediately.
+ * corrupts the MCP byte stream and crashes the client; this test catches
+ * that immediately.
  *
- * Strategy: spawn the built CLI in --socket mode (so the test can use
- * stdout for its own diagnostics if needed), wait for the ready marker
- * on stderr, then assert process.stdout produced nothing during the
- * startup + initialize + a representative tool-call workload.
+ * Strategy: spawn the built CLI over plain stdio (the real MCP transport),
+ * drive a representative `tools/list` round trip on stdin/stdout, then
+ * assert every newline-delimited frame on stdout parses as a JSON-RPC 2.0
+ * message — i.e. nothing non-protocol leaked onto the channel.
  */
 
 import { spawn } from 'node:child_process';
 import * as fs from 'fs';
-import * as net from 'node:net';
 import * as os from 'os';
 import * as path from 'path';
 
 const CLI = path.join(__dirname, '../../dist/cli/index.js');
 
-describe('F1.4 stdio hygiene', () => {
+describe('stdio hygiene', () => {
   let tmp: string;
-  let socketPath: string;
   let dbPath: string;
   let child: ReturnType<typeof spawn> | null = null;
   let stdoutBuf: string;
-  let stderrBuf: string;
+
+  beforeAll(() => {
+    if (!fs.existsSync(CLI)) {
+      throw new Error(`dist/cli/index.js missing — run npm run build before this test (looked at ${CLI})`);
+    }
+  });
 
   beforeEach(() => {
-    tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'ctx-sys-f14-'));
-    socketPath = path.join(tmp, 'mcp.sock');
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'ctx-sys-hygiene-'));
     dbPath = path.join(tmp, 'db.sqlite');
     stdoutBuf = '';
-    stderrBuf = '';
   });
 
   afterEach(async () => {
@@ -50,58 +52,40 @@ describe('F1.4 stdio hygiene', () => {
     fs.rmSync(tmp, { recursive: true, force: true });
   });
 
-  function startServe(): Promise<void> {
-    child = spawn('node', [CLI, 'serve', '--socket', socketPath, '--db', dbPath], {
-      stdio: ['ignore', 'pipe', 'pipe'],
+  function startServe(): void {
+    child = spawn('node', [CLI, 'serve', '--db', dbPath], {
+      stdio: ['pipe', 'pipe', 'pipe'],
     });
     child.stdout!.on('data', (chunk: Buffer) => { stdoutBuf += chunk.toString('utf-8'); });
-    return new Promise<void>((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error('Timed out waiting for ready marker')), 15_000);
-      child!.stderr!.on('data', (chunk: Buffer) => {
-        stderrBuf += chunk.toString('utf-8');
-        if (stderrBuf.includes('ctx-sys: ready')) {
-          clearTimeout(timer);
-          resolve();
-        }
-      });
-    });
   }
 
-  it('emits NOTHING on stdout from start through ready', async () => {
-    await startServe();
-    // Small delay to let any late stdout writes flush.
-    await new Promise(r => setTimeout(r, 100));
-    expect(stdoutBuf).toBe('');
-  });
-
-  it('keeps stdout silent during a tools/list JSON-RPC round trip', async () => {
-    await startServe();
+  it('emits only valid JSON-RPC frames on stdout during a tools/list round trip', async () => {
+    startServe();
 
     await new Promise<void>((resolve, reject) => {
-      const client = net.createConnection(socketPath);
-      let response = '';
       const timer = setTimeout(() => {
-        client.destroy();
-        reject(new Error(`No response in time. stdout buf so far: ${JSON.stringify(stdoutBuf)}`));
-      }, 5_000);
-      client.on('connect', () => {
-        client.write(JSON.stringify({
-          jsonrpc: '2.0', id: 1, method: 'tools/list', params: {},
-        }) + '\n');
-      });
-      client.on('data', (chunk: Buffer) => {
-        response += chunk.toString('utf-8');
-        if (response.includes('"jsonrpc"') && response.includes('"id":1')) {
+        reject(new Error(`No JSON-RPC response in time. stdout so far: ${JSON.stringify(stdoutBuf)}`));
+      }, 8_000);
+      child!.stdout!.on('data', () => {
+        if (stdoutBuf.includes('"jsonrpc"') && stdoutBuf.includes('"id":1')) {
           clearTimeout(timer);
-          client.end();
           resolve();
         }
       });
-      client.on('error', err => { clearTimeout(timer); reject(err); });
+      child!.on('error', err => { clearTimeout(timer); reject(err); });
+      child!.stdin!.write(JSON.stringify({
+        jsonrpc: '2.0', id: 1, method: 'tools/list', params: {},
+      }) + '\n');
     });
 
-    // Whatever the JSON-RPC content is, NONE of it should have leaked
-    // to the child's stdout: the response went through the socket.
-    expect(stdoutBuf).toBe('');
+    // Every non-empty line on stdout must be a JSON-RPC 2.0 frame. A stray
+    // console.log would land here as unparseable text and fail the test.
+    const lines = stdoutBuf.split(/\r?\n/).filter(l => l.trim().length > 0);
+    expect(lines.length).toBeGreaterThan(0);
+    for (const line of lines) {
+      let parsed: unknown;
+      expect(() => { parsed = JSON.parse(line); }).not.toThrow();
+      expect((parsed as { jsonrpc?: string }).jsonrpc).toBe('2.0');
+    }
   });
 });
