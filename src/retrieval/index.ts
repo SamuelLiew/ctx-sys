@@ -24,15 +24,6 @@ export {
   estimateTokens
 } from './context-assembler';
 
-// Relevance Feedback
-export {
-  RelevanceFeedback,
-  FeedbackType,
-  FeedbackSignal,
-  FeedbackStats,
-  RecordFeedbackOptions
-} from './relevance-feedback';
-
 // HyDE Query Expansion
 export {
   HyDEQueryExpander,
@@ -58,19 +49,6 @@ export {
   DEFAULT_GATE_CONFIG
 } from './retrieval-gate';
 
-// Draft-Critique Loop
-export {
-  DraftCritique,
-  CritiqueModelProvider,
-  CritiqueConfig,
-  DEFAULT_CRITIQUE_CONFIG,
-  ExtractedClaim,
-  CritiqueIteration,
-  DraftCritiqueOutput,
-  CritiqueOptions,
-  MockCritiqueModelProvider
-} from './draft-critique';
-
 // Context Expansion
 export {
   ContextExpander,
@@ -91,9 +69,5 @@ export { normalizeScores } from './score-normalizer';
 export {
   SearchResult,
   SearchStrategy,
-  SearchConfig,
-  RelevanceFeedbackInput,
-  StoredFeedback,
-  CritiqueResult,
-  CritiqueIssue
+  SearchConfig
 } from './types';
