@@ -13,7 +13,7 @@ npm install -g ctx-sys
 **v2 is in progress.** **Phases 1 and 2 are first-pass-merged on `main`**:
 
 - **Phase 1 (code-complete)** — F1.0 (prune conversational memory + hooks; V1 DB detection), F1.1 (.ctxignore defaults), F1.2 (lighter default models), F1.3 (`ctx-sys serve --socket` + ready signal for yaao integration), F1.4 (stdio hygiene + `status --json` schema), F1.5 (heuristic reranker cut), F1.6 (`ctx-sys init` auto-registers MCP in four targets).
-- **Phase 2 (first pass merged)** — F2.0 (post-checkout/merge/rewrite/applypatch hooks + `ctx-sys reindex` with worktree gate), F2.1 (every `CtxError` carries a `fix:` + CLI `addHelpText` examples on the top-level commands + no bare `throw new Error(` in `src/cli/`), F2.2 scoped subset (`ctx-sys doctor` registered as a top-level command with native-module checks: better-sqlite3, sqlite-vec PASS/WARN, Node version), F2.3 scoped subset (pluggable `PdfExtractor` interface + Tier 1 pdf-parse wrapper + content-addressed cache). The F2.2 provider-abstraction + `ctx-sys setup` work and F2.3 Tier 2/3 extractors are deferred — see [docs/v2/IMPLEMENTATION.md](docs/v2/IMPLEMENTATION.md) for the exact deferral list.
+- **Phase 2 (code-complete)** — F2.0 (post-checkout/merge/rewrite/applypatch hooks + `ctx-sys reindex` with worktree gate), F2.1 (every `CtxError` carries a `fix:` + CLI `addHelpText` examples on the top-level commands + no bare `throw new Error(` in `src/cli/`), F2.2 (top-level `ctx-sys doctor` with native-module checks for better-sqlite3 / sqlite-vec / Node version, `ctx-sys setup` one-command bootstrap, multi-backend provider abstraction with `openai-compatible` covering vLLM / LM Studio / llamafile / LiteLLM / llama.cpp, preflight + first-call loading indicator, sqlite-vec pinned to stable `^0.1.9`), F2.3 (Tier 1 + Tier 2 pdfjs extractor with heading detection + content-addressed cache wired into the document indexer). Tier 3 Docling integration is the one remaining deferral — it plugs in behind the existing `PdfExtractor` interface as additive work whenever a user reports needing it.
 - **Phase 3 (planned)** — the npm release pipeline that actually ships 2.0.0.
 
 The [v2 implementation plan](docs/v2/IMPLEMENTATION.md) is the working spec with per-phase detail under [docs/v2/phase-1](docs/v2/phase-1/), [docs/v2/phase-2](docs/v2/phase-2/), and [docs/v2/phase-3](docs/v2/phase-3/).
@@ -43,7 +43,7 @@ ollama serve &
 ollama pull mxbai-embed-large:latest
 ```
 
-> **v2 planned:** a single `ctx-sys setup` command will detect Ollama (or any OpenAI-compatible local backend), install if missing, and pull required models. See [F2.2](docs/v2/phase-2/F2.2-local-model-ux.md). Not available today.
+> **v2 (merged on `main`; ships in 2.0):** `ctx-sys setup` detects available backends (Ollama, OpenAI-compatible servers, llamafile), optionally installs Ollama on macOS / Linux when missing, pulls required models with progress, writes a starter config, and runs the F2.2 doctor to confirm. See [F2.2](docs/v2/phase-2/F2.2-local-model-ux.md). Flags: `--yes` (non-interactive), `--install` / `--no-install`, `--backend ollama|openai-compatible|openai`, `--no-models`, `--json`.
 
 ### 2. Index your project
 
@@ -286,7 +286,7 @@ providers:
 
 All grammars ship bundled as WASM via `@vscode/tree-sitter-wasm` — no per-language native compilation.
 
-Documents (Markdown, HTML, YAML, JSON, TOML, PDF, CSV, XML, plain text) are also indexed with semantic chunking. Today PDF extraction uses flat-text via `pdf-parse`; v2's [F2.3](docs/v2/phase-2/F2.3-pdf-extraction.md) introduces a pluggable `PdfExtractor` interface. Tier 1 (pdf-parse wrapper that produces structured markdown with page headings + a content-addressed cache) is merged on `main`; Tier 2 (pdfjs/mupdf layout heuristics) and Tier 3 (Docling structure-aware extraction) are additive behind the same interface and deferred to follow-up commits before 2.0 ships.
+Documents (Markdown, HTML, YAML, JSON, TOML, PDF, CSV, XML, plain text) are also indexed with semantic chunking. Today (1.x) PDF extraction uses flat-text via `pdf-parse`; v2's [F2.3](docs/v2/phase-2/F2.3-pdf-extraction.md) introduces a pluggable `PdfExtractor` interface with two tiers wired on `main`: Tier 1 (pdf-parse with structured markdown + page headings) and Tier 2 (pdfjs-dist with font-height-based heading detection + stable per-page reading order). A content-addressed cache makes re-indexing the same PDF a no-op. Tier 3 (Docling structure-aware extraction with table reconstruction) is the one remaining deferral and plugs in behind the same interface when added.
 
 ## Requirements
 

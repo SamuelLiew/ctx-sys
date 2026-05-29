@@ -22,7 +22,7 @@ yaao         → multi-agent orchestrator (uses ctx-sys as native retrieval peer
 | Phase | Focus | Release | Status |
 | --- | --- | --- | --- |
 | 1 | Focus & Sharpen | 2.0.0 (code) | **Code complete** (F1.0–F1.6 merged; F1.4 partial — see deferrals below) |
-| 2 | Better Defaults | 2.1.0+ | **First pass merged** (F2.0 + F2.1 full; F2.2 + F2.3 scoped subsets — see deferrals below) |
+| 2 | Better Defaults | 2.1.0+ | **Code complete** (F2.0–F2.3 all shipped; sqlite-vec pinned to stable) |
 | 3 | Release Engineering | 2.0.0 (ship) | Planned, gates on Phase 1 |
 
 Additional phases will be added here as they're scoped. Each is expected to be small and improvement-flavored, not feature-driven.
@@ -88,8 +88,8 @@ Capability expansion on top of the stable 2.0 core. Improves the day-one experie
 | --- | --- | --- | --- |
 | **F2.0** | Git-aware re-indexing | Shipped | [phase-2/F2.0-git-aware-reindex.md](phase-2/F2.0-git-aware-reindex.md) |
 | **F2.1** | User-facing strings audit (errors + CLI help) | Shipped | [phase-2/F2.1-user-facing-strings.md](phase-2/F2.1-user-facing-strings.md) |
-| **F2.2** | Local model UX | Shipped (partial — see below) | [phase-2/F2.2-local-model-ux.md](phase-2/F2.2-local-model-ux.md) |
-| **F2.3** | PDF extraction | Shipped (Tier 1 + cache; Tier 2/3 deferred) | [phase-2/F2.3-pdf-extraction.md](phase-2/F2.3-pdf-extraction.md) |
+| **F2.2** | Local model UX | Shipped (doctor + native-module checks + provider abstraction + preflight + loading indicator + `ctx-sys setup`) | [phase-2/F2.2-local-model-ux.md](phase-2/F2.2-local-model-ux.md) |
+| **F2.3** | PDF extraction | Shipped (Tier 1 + Tier 2 pdfjs + cache wired into document-indexer; Tier 3 Docling left for follow-up) | [phase-2/F2.3-pdf-extraction.md](phase-2/F2.3-pdf-extraction.md) |
 
 **Key deliverables:**
 
@@ -101,10 +101,19 @@ Capability expansion on top of the stable 2.0 core. Improves the day-one experie
 - PDF extraction is pluggable with three tiers (pdf-parse → pdfjs → Docling); structured markdown preserves headings, tables, lists, and reading order on multi-column documents.
 - No new MCP tools. No breaking changes. F2.2 ships a config-migration shim for existing setups.
 
-**Phase 2 deferrals** (carried as follow-up work; not blocking the first-pass completion):
+**Phase 2 follow-ups** (every original deferral is now closed; one capability is genuinely deferred to a follow-up release):
 
-- **F2.2 deferred:** `ctx-sys setup` interactive bootstrap; the multi-backend provider abstraction (Ollama / OpenAI-compatible / OpenAI / llama.cpp); preflight on every backend-touching command; first-call model loading indicator; sqlite-vec pin from alpha → stable. The native-module portion of `ctx-sys doctor` shipped (better-sqlite3 / sqlite-vec / Node version checks) and `ctx-sys doctor` is now a top-level command, which is the highest-leverage subset.
-- **F2.3 deferred:** Tier 2 (pdfjs/mupdf) and Tier 3 (Docling) extractors. The `PdfExtractor` interface and content-addressed cache shipped with Tier 1 (pdf-parse) wired, so Tier 2/3 is purely additive — each adds a new file behind the interface plus a switch case in `resolveExtractor`. Wiring the cache into the existing document-indexer's PDF path is also a follow-up.
+- **F2.3 Tier 3 (Docling) deferred.** Tier 3 needs a Python `docling` install + an external CLI or HTTP service contract. It plugs in behind the existing `PdfExtractor` interface (no API change — one new file + one switch case in `resolveExtractor`), so adding it is purely additive whenever a user reports needing higher-fidelity table extraction than Tier 2 (pdfjs) provides.
+
+Everything else originally deferred from F2.2 / F2.3 has landed:
+
+- F2.2 `ctx-sys setup` — interactive bootstrap with detection / install / model-pull / config / sanity-check, exposing `--yes`, `--install`, `--no-install`, `--backend`, `--no-models`, `--json`.
+- F2.2 multi-backend provider abstraction — `ProviderHealth` shape + `healthCheck()` on every provider; new `openai-compatible` provider covers vLLM / LM Studio / llamafile / LiteLLM / llama.cpp.
+- F2.2 preflight on backend-touching commands — `preflightProvider()` wired into the embedding loop in `ctx-sys index` (others can pick up the helper the same way).
+- F2.2 first-call loading indicator — `withLoadingIndicator(modelName, op, {delayMs})` prints a stderr-only notice if the first call hasn't returned within 3s; pairs with a completion line.
+- F2.2 sqlite-vec pin — bumped from `^0.1.7-alpha.2` to stable `^0.1.9`. Doctor reports the stable extension.
+- F2.3 Tier 2 — pdfjs-based extractor with heading detection (≥1.4× median font height → `####`, ≥1.8× → `###`) and stable per-page reading order. `resolveExtractor('auto')` now returns Tier 2.
+- F2.3 `extractWithCache` wired into `document-indexer.ts` — re-indexing the same PDF is a no-op on hit; the JSON sidecar round-trips pages + fullText so the indexer's per-page Section materialisation works on the hit path.
 
 ---
 
