@@ -6,6 +6,7 @@ import { Command } from 'commander';
 import * as fs from 'fs';
 import * as path from 'path';
 import { ConfigManager, DEFAULT_PROJECT_CONFIG_FILE } from '../config';
+import { writeMcpRegistrations } from './init-mcp';
 
 /**
  * v2 F1.1: seed `.ctxignore` content written by `ctx-sys init`.
@@ -84,6 +85,9 @@ export function createInitCommand(output: CLIOutput = defaultOutput): Command {
     .option('-f, --force', 'Overwrite existing configuration', false)
     .option('--global', 'Initialize global configuration instead', false)
     .option('--no-ignore-file', 'Skip generating .ctxignore (v2 F1.1)')
+    .option('--no-mcp', 'v2 F1.6: skip auto-registering ctx-sys in MCP configs')
+    .option('--mcp', 'v2 F1.6: explicitly opt in to MCP registration on re-init')
+    .option('--mcp-name <name>', 'v2 F1.6: register under a different key (e.g. ctx-sys-frontend)')
     .action(async (directory: string, options) => {
       try {
         const projectPath = path.resolve(directory);
@@ -153,7 +157,7 @@ async function initGlobalConfig(
 async function initProjectConfig(
   configManager: ConfigManager,
   projectPath: string,
-  options: { name?: string; force?: boolean; ignoreFile?: boolean },
+  options: { name?: string; force?: boolean; ignoreFile?: boolean; mcp?: boolean; mcpName?: string },
   output: CLIOutput
 ): Promise<void> {
   const exists = await configManager.projectConfigExists(projectPath);
@@ -178,6 +182,12 @@ async function initProjectConfig(
   // v2 F1.1: seed .ctxignore so the indexing boundary is visible from
   // day one and users don't silently inherit their .gitignore.
   writeCtxignore(projectPath, options, output);
+
+  // v2 F1.6: register ctx-sys in every standard MCP target unless the
+  // user opts out. Mirrors yaao F14.2.
+  if (options.mcp !== false) {
+    await writeMcpRegistrations(projectPath, output, { name: options.mcpName, force: options.force });
+  }
 
   output.log('');
   output.log('Next steps:');
