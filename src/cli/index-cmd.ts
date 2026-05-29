@@ -13,6 +13,7 @@ import { EntityStore } from '../entities';
 import { RelationshipStore } from '../graph/relationship-store';
 import { EmbeddingManager } from '../embeddings/manager';
 import { OllamaEmbeddingProvider } from '../embeddings/ollama';
+import { preflightProvider, withLoadingIndicator } from '../embeddings';
 import { DocumentIndexer } from '../documents/document-indexer';
 import { CLIOutput, defaultOutput } from './init';
 
@@ -255,6 +256,12 @@ async function runIndex(
           baseUrl: config.providers?.ollama?.base_url || 'http://localhost:11434',
           model: config.defaults?.embeddings?.model || 'mxbai-embed-large:latest'
         });
+
+        // v2 F2.2: preflight before the work starts. Fail fast with a
+        // clean message instead of a deep stack trace from the first
+        // real embed call.
+        await preflightProvider(ollamaProvider);
+
         const embeddingManager = new EmbeddingManager(db, projectId, ollamaProvider);
 
         const batchSize = parseInt(options.embedBatchSize || '50', 10);
@@ -262,9 +269,13 @@ async function runIndex(
         let totalSkipped = 0;
         let totalProcessed = 0;
         let totalErrors = 0;
+        let firstBatch = true;
 
         for (const page of entityStore.listPaginated({ pageSize: 500 })) {
-          const pageResult = await embeddingManager.embedIncremental(page, {
+          // v2 F2.2: wrap the first batch with a 'Loading model'
+          // indicator. Subsequent batches don't pay the model-load
+          // cost so suppress the message.
+          const runBatch = () => embeddingManager.embedIncremental(page, {
             batchSize,
             onProgress: (completed, _total, skipped) => {
               if (!options.quiet && completed % batchSize === 0) {
@@ -272,6 +283,10 @@ async function runIndex(
               }
             }
           });
+          const pageResult = firstBatch
+            ? await withLoadingIndicator(ollamaProvider.modelId, runBatch)
+            : await runBatch();
+          firstBatch = false;
           totalEmbedded += pageResult.embedded;
           totalSkipped += pageResult.skipped;
           totalProcessed += pageResult.total;

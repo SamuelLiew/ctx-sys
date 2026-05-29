@@ -1,6 +1,7 @@
 import { EmbeddingProvider, ProviderConfig } from './types';
 import { OllamaEmbeddingProvider } from './ollama';
 import { OpenAIEmbeddingProvider } from './openai';
+import { OpenAICompatibleEmbeddingProvider } from './openai-compatible';
 import { Logger, consoleLogger } from '../utils/logger';
 
 /**
@@ -8,7 +9,10 @@ import { Logger, consoleLogger } from '../utils/logger';
  */
 export class EmbeddingProviderFactory {
   /**
-   * Create an embedding provider from configuration.
+   * Create an embedding provider from configuration. v2 F2.2: now
+   * supports 'openai-compatible' for any local server that speaks the
+   * OpenAI embeddings shape (vLLM / LM Studio / llamafile / LiteLLM /
+   * llama.cpp's --api-style openai).
    */
   static async create(config: ProviderConfig): Promise<EmbeddingProvider> {
     switch (config.provider) {
@@ -25,6 +29,16 @@ export class EmbeddingProviderFactory {
         return new OpenAIEmbeddingProvider({
           apiKey: config.apiKey,
           model: config.model
+        });
+
+      case 'openai-compatible':
+        if (!config.baseUrl) {
+          throw new Error('openai-compatible provider requires `baseUrl` (e.g. http://localhost:8080/v1)');
+        }
+        return new OpenAICompatibleEmbeddingProvider({
+          baseUrl: config.baseUrl,
+          model: config.model,
+          apiKey: config.apiKey,
         });
 
       default:

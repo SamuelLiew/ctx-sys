@@ -1,4 +1,4 @@
-import { EmbeddingProvider, BatchOptions, EmbedOptions, ModelIdentifier } from './types';
+import { EmbeddingProvider, BatchOptions, EmbedOptions, ModelIdentifier, ProviderHealth } from './types';
 import { ollamaFetch } from '../utils/ollama-fetch';
 
 interface OllamaConfig {
@@ -227,14 +227,47 @@ export class OllamaEmbeddingProvider implements EmbeddingProvider {
   }
 
   async isAvailable(): Promise<boolean> {
+    const health = await this.healthCheck();
+    return health.status === 'ok';
+  }
+
+  /**
+   * v2 F2.2: structured health check. Distinguishes 'unreachable'
+   * (Ollama down) from 'model_missing' (Ollama up but configured
+   * model not pulled) so the recovery hint can be specific.
+   */
+  async healthCheck(): Promise<ProviderHealth> {
     try {
-      const response = await fetch(`${this.config.baseUrl}/api/tags`);
-      if (!response.ok) return false;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 3000);
+      const response = await fetch(`${this.config.baseUrl}/api/tags`, { signal: controller.signal });
+      clearTimeout(timeout);
+
+      if (!response.ok) {
+        return {
+          status: 'unreachable',
+          detail: `Ollama returned HTTP ${response.status} at ${this.config.baseUrl}`,
+          fix: 'Restart Ollama: `ollama serve`',
+        };
+      }
 
       const data = await response.json() as { models?: Array<{ name: string }> };
-      return data.models?.some(m => m.name.startsWith(this.config.model)) ?? false;
-    } catch {
-      return false;
+      const hasModel = data.models?.some(m => m.name.startsWith(this.config.model)) ?? false;
+      if (!hasModel) {
+        return {
+          status: 'model_missing',
+          detail: `Ollama up at ${this.config.baseUrl} but model "${this.config.model}" is not pulled`,
+          fix: `Pull the model: \`ollama pull ${this.config.model}\``,
+        };
+      }
+      return { status: 'ok', detail: `Ollama at ${this.config.baseUrl} (model "${this.config.model}" present)` };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return {
+        status: 'unreachable',
+        detail: `Cannot reach Ollama at ${this.config.baseUrl}: ${msg}`,
+        fix: 'Start Ollama: `ollama serve`',
+      };
     }
   }
 }
