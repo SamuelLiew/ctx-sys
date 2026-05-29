@@ -243,6 +243,7 @@ project:
 
 indexing:
   content: both          # v2: both (default) | code | docs (documentation only)
+  git_hooks: true         # v2: install git-aware sync hooks; `index` reconciles to this
   # doc_extensions:      # v2: override which extensions count as docs.
   #   - .md              # 'docs' mode defaults to prose (.md, .mdx, .txt, .rst, .pdf);
   #   - .txt             # 'both' mode otherwise indexes the full document set.
@@ -263,7 +264,11 @@ hyde:                    # optional
   model: gemma3:12b      # v2: gemma3:270m (lighter; remains opt-in)
 ```
 
-> **v2 — `indexing.content` (merged on `main`; ships in 2.0).** Controls what gets indexed: `both` (default, code + docs), `code` (AST entities only — same as `--no-doc`), or `docs` (documentation only, skips code). In `docs` mode the documentation set defaults to prose (`.md`, `.mdx`, `.txt`, `.rst`, `.pdf`) — set `indexing.doc_extensions` to widen or narrow it in any mode. Embeddings still run over the indexed documents. Since `reindex` and `watch` only handle code, they become no-ops in `docs` mode (refresh docs with `ctx-sys index`). Switching an existing project to `docs` won't remove already-indexed code entities — delete `.ctx-sys/` and re-index for a clean docs-only store. The `--content <mode>` CLI flag overrides config per run.
+> **v2 — `indexing.content` (merged on `main`; ships in 2.0).** Controls what gets indexed: `both` (default, code + docs), `code` (AST entities only — same as `--no-doc`), or `docs` (documentation only, skips code). In `docs` mode the documentation set defaults to prose (`.md`, `.mdx`, `.txt`, `.rst`, `.pdf`) — set `indexing.doc_extensions` to widen or narrow it in any mode. Embeddings still run over the indexed documents. `index`, `index --git-sync` (the git-hook sync path), and `watch` all respect `content`. Switching an existing project to `docs` won't remove already-indexed code entities — delete `.ctx-sys/` and re-index for a clean docs-only store. The `--content <mode>` CLI flag overrides config per run.
+
+<!-- -->
+
+> **v2 — `indexing.git_hooks` (merged on `main`; ships in 2.0).** Declares whether the git-aware sync hooks (post-checkout/merge/rewrite/applypatch → `ctx-sys index --git-sync`) are installed. `ctx-sys index` reconciles the hooks to match on every run: `true` (default) installs/updates them, `false` removes the ctx-sys-managed ones. Only ctx-sys-managed hooks are ever touched; `ctx-sys init --no-git-hooks` seeds `git_hooks: false`.
 
 <!-- -->
 

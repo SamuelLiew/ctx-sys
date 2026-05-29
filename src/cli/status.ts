@@ -235,6 +235,8 @@ function outputText(
   // Indexing configuration
   output.log('Indexing Configuration:');
   output.log(`  Mode: ${config.projectConfig.indexing.mode}`);
+  output.log(`  Content: ${config.projectConfig.indexing.content ?? 'both'}`);
+  output.log(`  Git hooks: ${config.projectConfig.indexing.git_hooks === false ? 'disabled' : 'enabled'}`);
   output.log(`  Watch: ${config.projectConfig.indexing.watch ? 'enabled' : 'disabled'}`);
   if (config.projectConfig.indexing.ignore?.length > 0) {
     output.log(`  Ignored: ${config.projectConfig.indexing.ignore.join(', ')}`);

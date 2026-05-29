@@ -7,6 +7,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { CodebaseIndexer, IndexOptions, IndexResult } from '../indexer';
 import { runGitSync } from '../indexer/git-sync';
+import { writeGitHooks, removeGitHooks } from './init-git-hooks';
 import { ConfigManager } from '../config';
 import { DatabaseConnection } from '../db/connection';
 import { ProjectManager } from '../project';
@@ -105,6 +106,28 @@ async function runIndex(
 ): Promise<void> {
   const configManager = new ConfigManager();
   const config = await configManager.resolve(projectPath);
+
+  // v2: reconcile git hooks to match indexing.git_hooks (declarative). `index`
+  // is the command users run anyway, so hook state follows config without a
+  // separate step. Only ctx-sys-managed hooks are touched; non-git dirs skip.
+  if (fs.existsSync(path.join(projectPath, '.git'))) {
+    const wantHooks = (config.projectConfig.indexing as { git_hooks?: boolean }).git_hooks !== false;
+    const capture: CLIOutput = { log: () => {}, error: (m) => output.error(m), success: () => {} };
+    if (wantHooks) {
+      const res = writeGitHooks(projectPath, capture, {});
+      if (!options.quiet && res.written.length > 0) {
+        output.success(`Installed ${res.written.length} git hook(s) (indexing.git_hooks: true).`);
+      }
+      if (!options.quiet) {
+        for (const w of res.warnings) output.log(`  git-hook: ${w.reason}`);
+      }
+    } else {
+      const res = removeGitHooks(projectPath, capture);
+      if (!options.quiet && res.removed.length > 0) {
+        output.log(`Removed ${res.removed.length} ctx-sys git hook(s) (indexing.git_hooks: false).`);
+      }
+    }
+  }
 
   // Set up database connection
   const dbPath = options.db || config.database.path;

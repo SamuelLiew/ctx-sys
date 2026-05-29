@@ -93,7 +93,7 @@ function writeHook(
   if (!isManagedByUs(body)) {
     result.warnings.push({
       path: target,
-      reason: `existing ${name} hook is not ctx-sys-managed — leaving alone. To wire ctx-sys in, add a line: 'ctx-sys reindex --from-git-hook &'.`,
+      reason: `existing ${name} hook is not ctx-sys-managed — leaving alone. To wire ctx-sys in, add a line: 'ctx-sys index --git-sync --from-git-hook &'.`,
     });
     return;
   }
@@ -155,6 +155,45 @@ export function writeGitHooks(
   for (const w of result.written) output.success(`Wrote git hook ${path.basename(w)} to ${w}`);
   for (const u of result.unchanged) output.log(`  git hook already current at ${u}`);
   for (const warning of result.warnings) output.log(`  warning: ${warning.reason} (${warning.path})`);
+
+  return result;
+}
+
+export interface RemoveHookResult {
+  removed: string[];
+  skipped: Array<{ path: string; reason: string }>;
+}
+
+/**
+ * Remove the ctx-sys-managed git hooks (the inverse of writeGitHooks). Only
+ * deletes hook files we own — a managed hook file is created wholesale by
+ * writeHook, so the presence of our MARKER means the whole file is ours.
+ * User-authored hooks (no MARKER) are left untouched. Used by `index` to
+ * reconcile to `indexing.git_hooks: false`.
+ */
+export function removeGitHooks(
+  projectPath: string,
+  output: CLIOutput,
+  hooksDirOverride?: string,
+): RemoveHookResult {
+  const result: RemoveHookResult = { removed: [], skipped: [] };
+  const hooksDir = hooksDirOverride ?? path.join(projectPath, '.git', 'hooks');
+  if (!fs.existsSync(hooksDir)) return result;
+
+  for (const name of HOOKS) {
+    const target = path.join(hooksDir, name);
+    if (!fs.existsSync(target)) continue;
+    const body = fs.readFileSync(target, 'utf-8');
+    if (!isManagedByUs(body)) {
+      result.skipped.push({ path: target, reason: `${name} hook is not ctx-sys-managed — leaving alone` });
+      continue;
+    }
+    fs.unlinkSync(target);
+    result.removed.push(target);
+  }
+
+  for (const r of result.removed) output.success(`Removed ctx-sys git hook ${path.basename(r)}`);
+  for (const s of result.skipped) output.log(`  left ${path.basename(s.path)} alone (${s.reason})`);
 
   return result;
 }

@@ -7,7 +7,7 @@
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { writeGitHooks, __testing } from '../../src/cli/init-git-hooks';
+import { writeGitHooks, removeGitHooks, __testing } from '../../src/cli/init-git-hooks';
 
 describe('F2.0 writeGitHooks', () => {
   let tmp: string;
@@ -96,5 +96,46 @@ describe('F2.0 writeGitHooks', () => {
     const result = writeGitHooks(tmp, silentOutput, {});
     expect(result.skipped.some(s => s.reason.includes('not a git repo'))).toBe(true);
     expect(result.written).toHaveLength(0);
+  });
+});
+
+describe('v2 removeGitHooks', () => {
+  let tmp: string;
+  let hooksDir: string;
+  const silentOutput = { log: () => {}, error: () => {}, success: () => {} };
+
+  beforeEach(() => {
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'ctx-sys-rm-hooks-'));
+    hooksDir = path.join(tmp, 'hooks');
+  });
+  afterEach(() => {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  });
+
+  it('removes the four ctx-sys-managed hooks', () => {
+    writeGitHooks(tmp, silentOutput, {}, hooksDir);
+    const result = removeGitHooks(tmp, silentOutput, hooksDir);
+    expect(result.removed).toHaveLength(4);
+    for (const hook of __testing.HOOKS) {
+      expect(fs.existsSync(path.join(hooksDir, hook))).toBe(false);
+    }
+  });
+
+  it('leaves a user-authored hook untouched', () => {
+    fs.mkdirSync(hooksDir, { recursive: true });
+    const target = path.join(hooksDir, 'post-merge');
+    fs.writeFileSync(target, '#!/bin/sh\n# user-managed\necho hi\n', { mode: 0o755 });
+
+    const result = removeGitHooks(tmp, silentOutput, hooksDir);
+
+    expect(result.removed).not.toContain(target);
+    expect(result.skipped.some(s => s.path === target)).toBe(true);
+    expect(fs.existsSync(target)).toBe(true);
+    expect(fs.readFileSync(target, 'utf-8')).toContain('# user-managed');
+  });
+
+  it('is a no-op when the hooks dir does not exist', () => {
+    const result = removeGitHooks(tmp, silentOutput, hooksDir);
+    expect(result.removed).toHaveLength(0);
   });
 });

@@ -181,12 +181,17 @@ async function initProjectConfig(
     process.exit(1);
   }
 
-  // Create config with optional custom name
+  // Create config with optional custom name. Record the git-hooks choice in
+  // config so `index` reconciles to it later (--no-git-hooks → git_hooks: false).
   const config = {
     ...DEFAULT_PROJECT_CONFIG_FILE,
     project: {
       ...DEFAULT_PROJECT_CONFIG_FILE.project,
       name: options.name || path.basename(projectPath)
+    },
+    indexing: {
+      ...DEFAULT_PROJECT_CONFIG_FILE.indexing,
+      git_hooks: options.gitHooks !== false
     }
   };
 

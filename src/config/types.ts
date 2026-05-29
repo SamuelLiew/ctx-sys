@@ -108,6 +108,14 @@ export interface IndexingConfig {
    */
   doc_extensions?: string[];
   /**
+   * v2: declares whether git-aware sync hooks (post-checkout/merge/rewrite/
+   * applypatch → `ctx-sys index --git-sync`) should be installed. `ctx-sys
+   * index` reconciles the hooks to match this on every run: `true` (default)
+   * installs/updates them, `false` removes the ctx-sys-managed hooks. Only
+   * ctx-sys-managed hooks are ever touched.
+   */
+  git_hooks?: boolean;
+  /**
    * v2 F1.1: opt in to layering .gitignore on top of .ctxignore + the
    * inline ignore: patterns. Defaults to false; users who want the
    * pre-2.0 behaviour set this true (or pass --use-gitignore).

@@ -409,6 +409,7 @@ export class ConfigManager {
         mode: 'incremental',
         watch: false,
         content: 'both',
+        git_hooks: true,
         ignore: ['node_modules', '.git', '.ctx-sys', 'dist', 'build']
       },
       summarization: {
@@ -466,6 +467,8 @@ export const DEFAULT_PROJECT_CONFIG_FILE: ProjectConfigFile = {
   indexing: {
     mode: 'incremental',
     watch: false,
+    content: 'both',
+    git_hooks: true,
     ignore: ['node_modules', '.git', '.ctx-sys', 'dist', 'build']
   },
   summarization: {
