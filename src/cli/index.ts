@@ -21,7 +21,6 @@ import { createSearchCommand } from './search';
 import { createContextCommand } from './context';
 import { createWatchCommand } from './watch';
 import { createStatusCommand } from './status';
-import { createReindexCommand } from './reindex';
 import { createDoctorCommand } from './doctor';
 import { createSetupCommand } from './setup';
 
@@ -76,7 +75,6 @@ program.addCommand(createContextCommand());
 program.addCommand(createStatusCommand());
 program.addCommand(createServeCommand());
 program.addCommand(createWatchCommand());
-program.addCommand(createReindexCommand());
 program.addCommand(createDoctorCommand());
 program.addCommand(createSetupCommand());
 

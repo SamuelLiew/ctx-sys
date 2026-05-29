@@ -6,6 +6,7 @@ import { Command } from 'commander';
 import * as path from 'path';
 import * as fs from 'fs';
 import { CodebaseIndexer, IndexOptions, IndexResult } from '../indexer';
+import { runGitSync } from '../indexer/git-sync';
 import { ConfigManager } from '../config';
 import { DatabaseConnection } from '../db/connection';
 import { ProjectManager } from '../project';
@@ -41,6 +42,9 @@ export function createIndexCommand(output: CLIOutput = defaultOutput): Command {
     .option('--embed-batch-size <n>', 'Batch size for embedding generation', '50')
     .option('--use-gitignore', 'v2 F1.1: layer .gitignore on top of .ctxignore (default off)')
     .option('--no-ctxignore', 'v2 F1.1: skip .ctxignore for this run')
+    .option('--git-sync', 'v2: re-index only files changed since the last indexed commit (diff-driven; respects indexing.content)', false)
+    .option('--from-git-hook', 'v2: invoked from a git hook (silent; never fails the git operation)', false)
+    .option('--threshold <n>', 'v2: with --git-sync, files-changed count above which we fall through to a full re-index', '200')
     .addHelpText('after', `
 Examples:
   ctx-sys index                        # incremental update of the current dir
@@ -49,16 +53,25 @@ Examples:
   ctx-sys index --content docs         # documentation only (skip code indexing)
   ctx-sys index --include "src/**"     # only walk a subset
   ctx-sys index --use-gitignore        # also respect .gitignore patterns
+  ctx-sys index --git-sync             # diff-driven re-sync since last indexed commit (also runs from git hooks)
 
 See also:
   ctx-sys context "..."   # query the index
-  ctx-sys reindex         # diff-driven git-aware sync (also runs from hooks)
 `)
     .action(async (directory: string, options) => {
       try {
         const projectPath = path.resolve(directory);
-        await runIndex(projectPath, options, output);
+        if (options.gitSync) {
+          await runGitSync(projectPath, options, output);
+        } else {
+          await runIndex(projectPath, options, output);
+        }
       } catch (error) {
+        // From a git hook we must never fail the user's git operation; errors
+        // land in the log the hook redirects to.
+        if (options.fromGitHook) {
+          process.exit(0);
+        }
         output.error(error instanceof Error ? error.message : String(error));
         process.exit(1);
       }

@@ -1,5 +1,5 @@
 /**
- * v2 F2.0: `ctx-sys reindex` is a no-op when invoked from a git
+ * v2 F2.0: `ctx-sys index --git-sync` is a no-op when invoked from a git
  * worktree. Worktrees share `.git/hooks/` with the main checkout, so
  * a hook firing inside a yaao per-task worktree would otherwise hammer
  * the main checkout's index.
@@ -13,13 +13,13 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 
-import { runReindex } from '../../src/cli/reindex';
+import { runGitSync } from '../../src/indexer/git-sync';
 
 function sh(cmd: string, cwd: string): void {
   execSync(cmd, { cwd, stdio: 'pipe' });
 }
 
-describe('F2.0 reindex worktree gate', () => {
+describe('F2.0 git-sync worktree gate', () => {
   let tmp: string;
   let main: string;
   let worktree: string;
@@ -61,8 +61,8 @@ describe('F2.0 reindex worktree gate', () => {
     fs.rmSync(tmp, { recursive: true, force: true });
   });
 
-  it('reindex invoked inside a worktree is a no-op (does not touch the main index)', async () => {
-    await runReindex(worktree, { fromGitHook: false }, output);
+  it('git-sync invoked inside a worktree is a no-op (does not touch the main index)', async () => {
+    await runGitSync(worktree, { fromGitHook: false }, output);
 
     expect(out.err).toHaveLength(0);
     // The user-facing log line confirms the gate fired.
@@ -70,7 +70,7 @@ describe('F2.0 reindex worktree gate', () => {
   });
 
   it('--from-git-hook mode in a worktree is fully silent (hook context)', async () => {
-    await runReindex(worktree, { fromGitHook: true }, output);
+    await runGitSync(worktree, { fromGitHook: true }, output);
 
     expect(out.err).toHaveLength(0);
     // Hook context: no user-facing chatter.

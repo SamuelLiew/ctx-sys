@@ -13,7 +13,7 @@ npm install -g ctx-sys
 **v2 is in progress.** **Phases 1 and 2 are first-pass-merged on `main`**:
 
 - **Phase 1 (code-complete)** — F1.0 (prune conversational memory + hooks; V1 DB detection), F1.1 (.ctxignore defaults), F1.2 (lighter default models), F1.3 (`ctx-sys serve --socket` + ready signal for yaao integration), F1.4 (stdio hygiene + `status --json` schema), F1.5 (heuristic reranker cut), F1.6 (`ctx-sys init` auto-registers MCP in four targets).
-- **Phase 2 (code-complete)** — F2.0 (post-checkout/merge/rewrite/applypatch hooks + `ctx-sys reindex` with worktree gate), F2.1 (every `CtxError` carries a `fix:` + CLI `addHelpText` examples on the top-level commands + no bare `throw new Error(` in `src/cli/`), F2.2 (top-level `ctx-sys doctor` with native-module checks for better-sqlite3 / sqlite-vec / Node version, `ctx-sys setup` one-command bootstrap, multi-backend provider abstraction with `openai-compatible` covering vLLM / LM Studio / llamafile / LiteLLM / llama.cpp, preflight + first-call loading indicator, sqlite-vec pinned to stable `^0.1.9`), F2.3 (Tier 1 + Tier 2 pdfjs extractor with heading detection + content-addressed cache wired into the document indexer). Tier 3 Docling integration is the one remaining deferral — it plugs in behind the existing `PdfExtractor` interface as additive work whenever a user reports needing it.
+- **Phase 2 (code-complete)** — F2.0 (post-checkout/merge/rewrite/applypatch hooks + `ctx-sys index --git-sync` with worktree gate), F2.1 (every `CtxError` carries a `fix:` + CLI `addHelpText` examples on the top-level commands + no bare `throw new Error(` in `src/cli/`), F2.2 (top-level `ctx-sys doctor` with native-module checks for better-sqlite3 / sqlite-vec / Node version, `ctx-sys setup` one-command bootstrap, multi-backend provider abstraction with `openai-compatible` covering vLLM / LM Studio / llamafile / LiteLLM / llama.cpp, preflight + first-call loading indicator, sqlite-vec pinned to stable `^0.1.9`), F2.3 (Tier 1 + Tier 2 pdfjs extractor with heading detection + content-addressed cache wired into the document indexer). Tier 3 Docling integration is the one remaining deferral — it plugs in behind the existing `PdfExtractor` interface as additive work whenever a user reports needing it.
 - **Phase 3 (planned)** — the npm release pipeline that actually ships 2.0.0.
 
 The [v2 implementation plan](docs/v2/IMPLEMENTATION.md) is the working spec with per-phase detail under [docs/v2/phase-1](docs/v2/phase-1/), [docs/v2/phase-2](docs/v2/phase-2/), and [docs/v2/phase-3](docs/v2/phase-3/).
@@ -124,10 +124,9 @@ ctx-sys serve                     # Start MCP server
 ctx-sys watch [directory]         # Watch files and auto-reindex
 ```
 
-v2 adds two more top-level commands (already on `main`, ship in 2.0):
+v2 adds another top-level command (already on `main`, ships in 2.0):
 
 ```bash
-ctx-sys reindex [directory]       # v2 F2.0: diff-driven git-aware re-sync (also runs from post-* hooks)
 ctx-sys doctor                    # v2 F2.2: provider + native-module + Node version checks (PASS/WARN/FAIL)
 ```
 
@@ -138,6 +137,7 @@ ctx-sys doctor                    # v2 F2.2: provider + native-module + Node ver
 ctx-sys index --no-doc            # Skip document indexing (alias for --content code)
 ctx-sys index --content docs      # v2: documentation only (skip code indexing)
 ctx-sys index --content code      # v2: code only
+ctx-sys index --git-sync          # v2: diff-driven re-sync since last indexed commit (also runs from git hooks)
 ctx-sys index --no-embed          # Skip embedding generation
 ctx-sys index --force             # Re-index everything from scratch
 

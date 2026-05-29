@@ -34,7 +34,7 @@ describe('F2.0 writeGitHooks', () => {
       const body = readHook(hook);
       expect(body).toContain(__testing.MARKER);
       expect(body).toContain('git rev-parse --git-common-dir');
-      expect(body).toContain('ctx-sys reindex --from-git-hook');
+      expect(body).toContain('ctx-sys index --git-sync --from-git-hook');
       // shebang + exec bit
       expect(body.startsWith('#!/bin/sh')).toBe(true);
       expect(fs.statSync(path.join(hooksDir, hook)).mode & 0o111).not.toBe(0);
@@ -69,7 +69,7 @@ describe('F2.0 writeGitHooks', () => {
   it('ctx-sys-managed hook differing from current default warns without --force', () => {
     fs.mkdirSync(hooksDir, { recursive: true });
     const target = path.join(hooksDir, 'post-rewrite');
-    fs.writeFileSync(target, `#!/bin/sh\n${__testing.MARKER}\n# old\nctx-sys reindex --from-git-hook\n`, { mode: 0o755 });
+    fs.writeFileSync(target, `#!/bin/sh\n${__testing.MARKER}\n# old\nctx-sys index --git-sync --from-git-hook\n`, { mode: 0o755 });
 
     const result = writeGitHooks(tmp, silentOutput, {}, hooksDir);
 
@@ -87,7 +87,7 @@ describe('F2.0 writeGitHooks', () => {
     expect(result.written).toContain(target);
     const body = fs.readFileSync(target, 'utf-8');
     expect(body).toContain(__testing.MARKER);
-    expect(body).toContain('ctx-sys reindex --from-git-hook');
+    expect(body).toContain('ctx-sys index --git-sync --from-git-hook');
     expect(body).not.toContain('# old');
   });
 

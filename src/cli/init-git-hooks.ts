@@ -62,7 +62,7 @@ function hookScript(hookName: HookName): string {
     '# Background, fire-and-forget. Errors land in .ctx-sys/reindex.log',
     '# so an interactive git op never gets noisy.',
     'mkdir -p .ctx-sys',
-    '( ctx-sys reindex --from-git-hook >>.ctx-sys/reindex.log 2>&1 ) &',
+    '( ctx-sys index --git-sync --from-git-hook >>.ctx-sys/reindex.log 2>&1 ) &',
     'exit 0',
     '',
   ].join('\n');
