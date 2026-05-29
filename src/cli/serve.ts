@@ -141,12 +141,25 @@ async function startOverSocket(
  */
 export function createServeCommand(): Command {
   const command = new Command('serve')
-    .description('Start the MCP server (stdio by default; --socket for UDS)')
+    .description('Start the MCP server for AI assistant integration (spawned by Claude Desktop / Claude Code / Cursor — not run directly by humans)')
     .option('-d, --db <path>', 'Database path')
     .option('-p, --project <path>', 'Project directory (auto-detects database)')
     .option('-n, --name <name>', 'Server name', 'ctx-sys')
     .option('-v, --version <version>', 'Server version', pkg.version)
     .option('--socket <path>', 'v2 F1.3: serve MCP over a Unix domain socket instead of stdio')
+    .addHelpText('after', `
+Examples:
+  ctx-sys serve                              # stdio (the usual MCP transport)
+  ctx-sys serve --socket /tmp/ctx-sys.sock   # UDS (used by yaao)
+  ctx-sys serve --db ./custom.sqlite
+
+This command is spawned by MCP clients (Claude Desktop / Claude Code /
+Cursor / yaao), not run interactively. It emits 'ctx-sys: ready' on
+stderr once the transport is up so spawners can stop polling.
+
+See also:
+  ctx-sys init --mcp     # auto-registers ctx-sys in the agent's MCP config
+`)
     .action(async (options) => {
       const dbPath = await resolveDbPath(options.db, options.project);
       const server = new CtxSysMcpServer({

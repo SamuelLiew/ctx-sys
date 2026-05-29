@@ -91,6 +91,17 @@ export function createInitCommand(output: CLIOutput = defaultOutput): Command {
     .option('--mcp-name <name>', 'v2 F1.6: register under a different key (e.g. ctx-sys-frontend)')
     .option('--no-git-hooks', 'v2 F2.0: skip installing post-checkout/merge/rewrite/applypatch hooks')
     .option('--git-hooks', 'v2 F2.0: explicitly opt in to git-hook install on re-init')
+    .addHelpText('after', `
+Examples:
+  ctx-sys init                          # initialize the current directory
+  ctx-sys init ../other-project         # initialize a sibling directory
+  ctx-sys init --no-mcp --no-git-hooks  # config + .ctxignore only
+  ctx-sys init --force --mcp            # re-init and overwrite existing files
+
+Next steps after init:
+  ctx-sys index              # build the index
+  ctx-sys context "..."      # ask a question
+`)
     .action(async (directory: string, options) => {
       try {
         const projectPath = path.resolve(directory);

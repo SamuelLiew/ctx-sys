@@ -11,6 +11,7 @@ export type ErrorCode =
   | 'DATABASE_ERROR'
   | 'DATABASE_LOCKED'
   | 'V1_DATABASE_DETECTED'
+  | 'SQLITE_VEC_UNAVAILABLE'
   | 'PROJECT_NOT_FOUND'
   | 'PROJECT_EXISTS'
   | 'ENTITY_NOT_FOUND'
@@ -57,7 +58,10 @@ export class OllamaUnavailableError extends CtxError {
     super(
       `Cannot connect to Ollama at ${url}`,
       'OLLAMA_UNAVAILABLE',
-      'Start Ollama with: ollama serve\nOr check your config: ctx-sys status --check',
+      // v2 F2.1: surface both the immediate fix and the canonical
+      // diagnostic command. `ctx-sys doctor` is the F2.2 future home;
+      // until that ships, `status --check` is the bridge.
+      'Start Ollama (`ollama serve`) and confirm the URL above is reachable. Run `ctx-sys status --check` for a full diagnostic.',
       cause,
     );
     this.name = 'OllamaUnavailableError';
@@ -80,9 +84,14 @@ export class OllamaModelNotFoundError extends CtxError {
 /** A resource (project, entity) was not found. */
 export class NotFoundError extends CtxError {
   constructor(resource: string, identifier: string) {
+    const isProject = resource === 'Project';
     super(
       `${resource} not found: ${identifier}`,
-      resource === 'Project' ? 'PROJECT_NOT_FOUND' : 'ENTITY_NOT_FOUND',
+      isProject ? 'PROJECT_NOT_FOUND' : 'ENTITY_NOT_FOUND',
+      // v2 F2.1: every NotFoundError gets a concrete recovery hint.
+      isProject
+        ? 'Run `ctx-sys init` to initialise this directory, or `ctx-sys project list` to see existing projects.'
+        : 'Run `ctx-sys index` if the project hasn\'t been indexed yet, or `ctx-sys entity list` to browse what is indexed.',
     );
     this.name = 'NotFoundError';
   }
@@ -91,9 +100,14 @@ export class NotFoundError extends CtxError {
 /** A resource already exists (duplicate name, etc.). */
 export class AlreadyExistsError extends CtxError {
   constructor(resource: string, identifier: string) {
+    const isProject = resource === 'Project';
     super(
       `${resource} already exists: ${identifier}`,
-      resource === 'Project' ? 'PROJECT_EXISTS' : 'ENTITY_EXISTS',
+      isProject ? 'PROJECT_EXISTS' : 'ENTITY_EXISTS',
+      // v2 F2.1: explicit fix for both branches.
+      isProject
+        ? 'Pick a different project name, or delete the existing one with `ctx-sys project delete ' + identifier + '`.'
+        : 'Re-run with `--force` to overwrite the existing entity, or pick a different name.',
     );
     this.name = 'AlreadyExistsError';
   }
@@ -108,7 +122,10 @@ export class DatabaseError extends CtxError {
         ? 'Database is locked — another process may be using it'
         : `Database error during ${operation}: ${cause?.message ?? 'unknown'}`,
       isLocked ? 'DATABASE_LOCKED' : 'DATABASE_ERROR',
-      isLocked ? 'Close other ctx-sys processes and try again' : undefined,
+      // v2 F2.1: every DATABASE_ERROR variant carries a fix.
+      isLocked
+        ? 'Close other ctx-sys processes (or `ctx-sys serve` instances), wait a moment, then retry.'
+        : 'Check `.ctx-sys/db.sqlite` permissions and free disk, then re-run. Run `ctx-sys status --check` to diagnose.',
       cause,
     );
     this.name = 'DatabaseError';
@@ -138,8 +155,49 @@ export class ProviderUnavailableError extends CtxError {
     super(
       `No ${type} provider available (tried: ${tried.join(', ')})`,
       'PROVIDER_UNAVAILABLE',
-      'Ensure Ollama is running: ollama serve\nOr configure an OpenAI API key in ~/.ctx-sys/config.yaml',
+      'Ensure Ollama is running (`ollama serve`) and the configured model is pulled, or configure an OpenAI API key in `~/.ctx-sys/config.yaml`.',
     );
     this.name = 'ProviderUnavailableError';
+  }
+}
+
+/**
+ * v2 F2.1 + F2.2: the sqlite-vec extension failed to load at startup.
+ * ctx-sys continues running with FTS-only retrieval (no vector search),
+ * but the user needs to know they've lost half the hybrid pipeline.
+ * This error type is thrown by code paths that explicitly require
+ * vector search (e.g. an `embed run` step where the vec table would
+ * be the destination); the connection layer also logs a warning at
+ * startup so users see the degradation even when they aren't running
+ * a vector-dependent command.
+ */
+export class SqliteVecUnavailableError extends CtxError {
+  constructor(detail?: string) {
+    super(
+      `Vector search is disabled because the sqlite-vec extension failed to load${detail ? ` (${detail})` : ''}`,
+      'SQLITE_VEC_UNAVAILABLE',
+      'Reinstall with `npm install -g ctx-sys --force` to refresh native binaries. If your platform is not supported by sqlite-vec prebuilds, retrieval will fall back to FTS5 + graph only.',
+    );
+    this.name = 'SqliteVecUnavailableError';
+  }
+}
+
+/** Invalid argument to a CLI command or library entry point. */
+export class InvalidInputError extends CtxError {
+  constructor(message: string, fix?: string) {
+    super(message, 'INVALID_INPUT', fix);
+    this.name = 'InvalidInputError';
+  }
+}
+
+/** A required file is missing. */
+export class FileNotFoundError extends CtxError {
+  constructor(filePath: string, fix?: string) {
+    super(
+      `File not found: ${filePath}`,
+      'FILE_NOT_FOUND',
+      fix ?? `Check the path and re-run. (\`${filePath}\` was not found on disk.)`,
+    );
+    this.name = 'FileNotFoundError';
   }
 }

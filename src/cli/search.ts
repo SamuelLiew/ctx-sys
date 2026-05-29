@@ -35,6 +35,22 @@ export function createSearchCommand(output: CLIOutput = defaultOutput): Command 
     .option('--threshold <n>', 'Minimum similarity score for semantic search', '0.3')
     .option('--format <format>', 'Output format (text, json)', 'text')
     .option('-d, --db <path>', 'Custom database path')
+    .addHelpText('after', `
+Examples:
+  ctx-sys search "auth middleware"          # hybrid: vector + keyword
+  ctx-sys search "ssl handshake" --hyde     # HyDE-enhanced semantic search
+  ctx-sys search "TODO" --no-semantic       # keyword-only
+  ctx-sys search "logger" --type function   # filter by entity type
+  ctx-sys search "..." --format json        # machine-readable output
+
+HyDE (--hyde): generates a hypothetical answer first, embeds *that*,
+then searches. Better for conceptual questions; costs one extra LLM
+call. Requires the configured 'hyde.model' to be available (default
+gemma3:270m after v2 F1.2).
+
+See also:
+  ctx-sys context "..."  # assembled context with source attribution
+`)
     .action(async (query: string, options) => {
       try {
         const projectPath = path.resolve(options.project);

@@ -36,6 +36,18 @@ export function createIndexCommand(output: CLIOutput = defaultOutput): Command {
     .option('--embed-batch-size <n>', 'Batch size for embedding generation', '50')
     .option('--use-gitignore', 'v2 F1.1: layer .gitignore on top of .ctxignore (default off)')
     .option('--no-ctxignore', 'v2 F1.1: skip .ctxignore for this run')
+    .addHelpText('after', `
+Examples:
+  ctx-sys index                        # incremental update of the current dir
+  ctx-sys index --force                # re-index from scratch
+  ctx-sys index --no-embed --no-doc    # AST entities only (skip embeddings + docs)
+  ctx-sys index --include "src/**"     # only walk a subset
+  ctx-sys index --use-gitignore        # also respect .gitignore patterns
+
+See also:
+  ctx-sys context "..."   # query the index
+  ctx-sys reindex         # diff-driven git-aware sync (also runs from hooks)
+`)
     .action(async (directory: string, options) => {
       try {
         const projectPath = path.resolve(directory);

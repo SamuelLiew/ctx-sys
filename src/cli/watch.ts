@@ -23,6 +23,17 @@ export function createWatchCommand(output: CLIOutput = defaultOutput): Command {
     .option('--include <patterns>', 'Comma-separated glob patterns to include')
     .option('--exclude <patterns>', 'Comma-separated glob patterns to exclude')
     .option('-q, --quiet', 'Suppress event output', false)
+    .addHelpText('after', `
+Examples:
+  ctx-sys watch                          # follow the cwd
+  ctx-sys watch ../other-project
+  ctx-sys watch --include "src/**" --debounce 500
+
+Limitation: watches filesystem changes only. \`git checkout\` /
+\`git pull\` / \`git rebase\` are NOT picked up by the file watcher
+because git changes many files atomically; ctx-sys v2 F2.0 installs
+post-* git hooks that call \`ctx-sys reindex\` to cover that case.
+`)
     .action(async (directory: string, options) => {
       try {
         const projectPath = path.resolve(directory);

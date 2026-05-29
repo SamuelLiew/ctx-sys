@@ -10,6 +10,7 @@ import { ConfigManager } from '../config';
 import { AppContext } from '../context';
 import { formatTable, colors } from './formatters';
 import { CLIOutput, defaultOutput } from './init';
+import { InvalidInputError, NotFoundError } from '../errors';
 
 /**
  * Create the instruction command with subcommands.
@@ -115,7 +116,7 @@ async function addInstruction(
     content = fs.readFileSync(path.resolve(options.file), 'utf-8');
   }
   if (!content) {
-    throw new Error('Either --content or --file is required');
+    throw new InvalidInputError('Either --content or --file is required', 'Pass `--content "..."` for inline text, or `--file path/to/file` to load from disk.');
   }
 
   const configManager = new ConfigManager();
@@ -250,7 +251,7 @@ async function editInstruction(
 
     const entity = await entityStore.get(id);
     if (!entity || entity.type !== 'instruction') {
-      throw new Error(`Instruction not found: ${id}`);
+      throw new NotFoundError('Entity', id);
     }
 
     const meta = (entity.metadata as Record<string, unknown>) || {};
@@ -302,7 +303,7 @@ async function removeInstruction(
 
     const entity = await entityStore.get(id);
     if (!entity || entity.type !== 'instruction') {
-      throw new Error(`Instruction not found: ${id}`);
+      throw new NotFoundError('Entity', id);
     }
 
     await entityStore.delete(id);

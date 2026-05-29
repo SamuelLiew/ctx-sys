@@ -8,6 +8,7 @@ import * as fs from 'fs';
 import { ConfigManager } from '../config';
 import { DatabaseConnection } from '../db/connection';
 import { KnowledgeBasePackager } from '../kb/packager';
+import { FileNotFoundError } from '../errors';
 import { formatTable, formatBytes, formatDate, colors } from './formatters';
 import { CLIOutput, defaultOutput } from './init';
 
@@ -151,7 +152,7 @@ async function runKBInstall(
 ): Promise<void> {
   const absolutePath = path.resolve(file);
   if (!fs.existsSync(absolutePath)) {
-    throw new Error(`File not found: ${absolutePath}`);
+    throw new FileNotFoundError(absolutePath);
   }
 
   // Determine DB path — use default or specified
@@ -204,7 +205,7 @@ async function runKBInfo(
 ): Promise<void> {
   const absolutePath = path.resolve(file);
   if (!fs.existsSync(absolutePath)) {
-    throw new Error(`File not found: ${absolutePath}`);
+    throw new FileNotFoundError(absolutePath);
   }
 
   const fileSize = fs.statSync(absolutePath).size;

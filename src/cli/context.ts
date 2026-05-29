@@ -17,7 +17,7 @@ import { CLIOutput, defaultOutput } from './init';
  */
 export function createContextCommand(output: CLIOutput = defaultOutput): Command {
   const command = new Command('context')
-    .description('Query assembled context (like MCP context_query)')
+    .description('Retrieve and assemble curated context for a natural-language query, with source attribution and a token budget')
     .argument('<query>', 'Context query')
     .option('-p, --project <path>', 'Project directory', '.')
     .option('-t, --tokens <n>', 'Max tokens for context', '4000')
@@ -34,6 +34,20 @@ export function createContextCommand(output: CLIOutput = defaultOutput): Command
     .option('--max-results <n>', 'Maximum number of results to include', '15')
     .option('--format <format>', 'Output format (markdown, json, text)', 'markdown')
     .option('-d, --db <path>', 'Custom database path')
+    .addHelpText('after', `
+Examples:
+  ctx-sys context "how is auth wired?"           # default markdown output
+  ctx-sys context "..." --tokens 8000            # bigger budget for longer answers
+  ctx-sys context "..." --hyde --no-expand       # HyDE + skip parent/import expansion
+  ctx-sys context "..." --format json            # for downstream tooling
+
+This mirrors the MCP \`context_query\` tool — the CLI is the same
+retrieval pipeline (vector + FTS + graph fused with RRF, plus optional
+HyDE / expand / decompose / gate) with text-mode output.
+
+See also:
+  ctx-sys search "..."   # raw hits without assembly
+`)
     .action(async (query: string, options) => {
       try {
         const projectPath = path.resolve(options.project);

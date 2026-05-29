@@ -10,7 +10,10 @@ export {
   AlreadyExistsError,
   DatabaseError,
   V1DatabaseDetectedError,
-  ProviderUnavailableError
+  SqliteVecUnavailableError,
+  ProviderUnavailableError,
+  InvalidInputError,
+  FileNotFoundError
 } from './errors';
 
 // Configuration

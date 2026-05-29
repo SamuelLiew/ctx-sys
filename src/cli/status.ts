@@ -29,6 +29,16 @@ export function createStatusCommand(output: CLIOutput = defaultOutput): Command 
     .option('-d, --db <path>', 'Custom database path')
     .option('--check', 'Run full health checks (Ollama, models, database)', false)
     .option('--json', 'Output as JSON', false)
+    .addHelpText('after', `
+Examples:
+  ctx-sys status                # quick local snapshot
+  ctx-sys status --check        # full diagnostics (probes Ollama, models, DB)
+  ctx-sys status --json         # machine-readable, schema: schema/status.schema.json
+
+\`--check\` runs network probes and is slower; the default is fast and
+local-only. v2 F2.2 will add 'ctx-sys doctor' as the canonical
+diagnostic name; --check is the bridge until then.
+`)
     .action(async (directory: string, options) => {
       try {
         const projectPath = path.resolve(directory);

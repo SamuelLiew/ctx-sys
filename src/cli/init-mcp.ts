@@ -20,6 +20,7 @@ import * as os from 'os';
 import * as path from 'path';
 
 import type { CLIOutput } from './init';
+import { InvalidInputError } from '../errors';
 
 // smol-toml is ESM-only; load it lazily so the CommonJS build keeps
 // working. The first call to writeCodexTarget pays the import cost.
@@ -63,7 +64,10 @@ function readJsonFile<T = unknown>(filePath: string): T | undefined {
   try {
     return JSON.parse(body) as T;
   } catch (err) {
-    throw new Error(`Malformed JSON at ${filePath}: ${(err as Error).message}`);
+    throw new InvalidInputError(
+      `Malformed JSON at ${filePath}: ${(err as Error).message}`,
+      `Fix the JSON syntax in ${filePath}, or re-run with \`ctx-sys init --no-mcp\` to skip MCP registration.`,
+    );
   }
 }
 
