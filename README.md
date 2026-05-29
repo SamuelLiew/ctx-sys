@@ -181,7 +181,7 @@ ctx-sys session messages [id]     # View session messages
 ctx-sys hooks install             # Pre-commit impact_report
 ```
 
-If you rely on these today, see the [v2 migration notes](docs/v2/phase-1/F1.0-prune-conversational-memory.md). On schema upgrade, existing session/decision/checkpoint data exports to `.ctx-sys/migration-export-v1.jsonl` so you can move it elsewhere.
+If you rely on these today, see the [v2 upgrade notes](docs/v2/phase-1/F1.0-prune-conversational-memory.md). **There is no automatic data migration:** to upgrade from 1.x to 2.0, delete `.ctx-sys/` and run `ctx-sys index` to rebuild a clean 2.x index. If you want to keep historical session / decision / checkpoint data, export it from 1.x *before* upgrading and store it elsewhere (lean-ctx, mem0, or a flat markdown log).
 
 ## MCP Tools
 
@@ -285,15 +285,15 @@ ctx-sys stores everything in a single SQLite database (via `better-sqlite3` — 
 
 Search combines vector + FTS + graph retrieval using reciprocal rank fusion (RRF). An optional LLM reranker is available for high-quality paths. Advanced features include HyDE query expansion, query decomposition, retrieval gating, and smart context expansion.
 
-> **1.x today** also stores conversation history (sessions, messages, decisions, checkpoints, reflections, memory tiers). v2's [F1.0](docs/v2/phase-1/F1.0-prune-conversational-memory.md) removes that entire layer; existing data exports to `.ctx-sys/migration-export-v1.jsonl` on upgrade. v1's heuristic reranker is also cut by [F1.5](docs/v2/phase-1/F1.5-cut-heuristic-reranker.md) — RRF over vector + FTS + graph becomes the final ranking, with the LLM reranker as the opt-in high-quality path.
+> **1.x today** also stores conversation history (sessions, messages, decisions, checkpoints, reflections, memory tiers). v2's [F1.0](docs/v2/phase-1/F1.0-prune-conversational-memory.md) removes that entire layer with **no automatic migration** — upgraders delete `.ctx-sys/` and re-index against the 2.x schema. v1's heuristic reranker is also cut by [F1.5](docs/v2/phase-1/F1.5-cut-heuristic-reranker.md) — RRF over vector + FTS + graph becomes the final ranking, with the LLM reranker as the opt-in high-quality path.
 
 ## v2 roadmap
 
 The [v2 implementation plan](docs/v2/IMPLEMENTATION.md) is the working spec. In summary:
 
 - **Phase 1 — Focus & Sharpen (2.0.0 code).** Cut conversational memory + `hooks`; lighter default models; yaao native integration contract (`ctx-sys serve --socket`); MCP server polish (stdio hygiene, `--json` schemas, MCP resources for entities); cut the heuristic reranker; `ctx-sys init --mcp` auto-registration.
-- **Phase 2 — Better Defaults (2.1.0+).** Git-aware re-indexing via `post-checkout` / `post-merge` / `post-rewrite` hooks; error message + hint audit (every user-facing `CtxError` carries a `fix:`); one-command `ctx-sys setup` + `ctx-sys doctor` + multi-backend provider abstraction (Ollama / OpenAI-compatible / OpenAI / llama.cpp); structured PDF extraction (Tier 1 pdf-parse → Tier 2 pdfjs → Tier 3 Docling).
-- **Phase 3 — Release Engineering (2.0.0 ship).** GitHub Actions release workflow, [Keep a Changelog](https://keepachangelog.com)-style CHANGELOG, dist-tag strategy (`next` for betas), `npm publish --provenance`, minimum two-week beta period exercising the F1.0 schema migration.
+- **Phase 2 — Better Defaults (2.1.0+).** Git-aware re-indexing via `post-checkout` / `post-merge` / `post-rewrite` hooks; user-facing strings audit (every `CtxError` carries a `fix:`, every CLI `--help` gains usage examples and tightened descriptions); one-command `ctx-sys setup` + `ctx-sys doctor` + multi-backend provider abstraction (Ollama / OpenAI-compatible / OpenAI / llama.cpp); structured PDF extraction (Tier 1 pdf-parse → Tier 2 pdfjs → Tier 3 Docling).
+- **Phase 3 — Release Engineering (2.0.0 ship).** GitHub Actions release workflow, [Keep a Changelog](https://keepachangelog.com)-style CHANGELOG, dist-tag strategy (`next` for betas), `npm publish --provenance`, minimum two-week beta period exercising the trimmed tool surface and the "delete `.ctx-sys/` and re-index" upgrade path.
 
 Stack positioning after v2:
 
