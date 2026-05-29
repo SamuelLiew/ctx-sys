@@ -80,7 +80,7 @@ Add ctx-sys as an MCP server. For **Claude Desktop** (in `~/Library/Application 
 
 Your AI assistant now has tools for hybrid retrieval, entity inspection, and graph traversal across your codebase.
 
-> **v2 planned:** `ctx-sys init` will auto-register the MCP server in `.mcp.json`, `.cursor/mcp.json`, `~/.codex/config.toml`, and `.github/copilot-instructions.md` (default on, opt out with `--no-mcp`). See [F1.6](docs/v2/phase-1/F1.6-mcp-init.md). For now, you wire it up manually as above.
+> **v2 (merged on `main`; ships in 2.0):** `ctx-sys init` auto-registers the MCP server in `.mcp.json`, `.cursor/mcp.json`, `~/.codex/config.toml`, and `.github/copilot-instructions.md` (default on, opt out with `--no-mcp`, `--mcp-name X` for side-by-side indexes). See [F1.6](docs/v2/phase-1/F1.6-mcp-init.md). On the published 1.x, you wire it up manually as above; building from source gets you the auto-register flow today.
 
 ## How It Works
 
@@ -124,6 +124,13 @@ ctx-sys serve                     # Start MCP server
 ctx-sys watch [directory]         # Watch files and auto-reindex
 ```
 
+v2 adds two more top-level commands (already on `main`, ship in 2.0):
+
+```bash
+ctx-sys reindex [directory]       # v2 F2.0: diff-driven git-aware re-sync (also runs from post-* hooks)
+ctx-sys doctor                    # v2 F2.2: provider + native-module + Node version checks (PASS/WARN/FAIL)
+```
+
 ### Key flags
 
 ```bash
@@ -146,7 +153,7 @@ ctx-sys context "query" --hyde
 ctx-sys status --check            # Full health diagnostics
 ```
 
-> **v2 planned:** `ctx-sys doctor` will replace `status --check` as the canonical diagnostic command, with provider preflight, config validation, native-module checks, and PASS / WARN / FAIL output. See [F2.2](docs/v2/phase-2/F2.2-local-model-ux.md).
+> **v2 (merged on `main`; ships in 2.0):** `ctx-sys doctor` is now a top-level command with provider preflight, config validation, native-module checks (better-sqlite3 + sqlite-vec PASS/WARN + Node version), and PASS / WARN / FAIL output. The `ctx-sys setup` interactive bootstrap and the full multi-backend provider abstraction (Ollama / OpenAI-compatible / OpenAI / llama.cpp) are still in scope for F2.2 but deferred to a follow-up commit before 2.0 ships. See [F2.2](docs/v2/phase-2/F2.2-local-model-ux.md).
 
 ### Subcommands (stable across versions)
 
@@ -168,9 +175,18 @@ ctx-sys embed status              # Coverage report
 ctx-sys summarize run             # Generate LLM summaries
 ctx-sys summarize status          # Coverage report
 
+# Configuration
+ctx-sys config get <key>          # Read a config value
+ctx-sys config set <key> <value>  # Set a config value
+ctx-sys config list               # Show resolved configuration
+
 # Knowledge bases
 ctx-sys kb create <name>          # Package as shareable .ctx-kb
 ctx-sys kb install <file>         # Install a knowledge base
+
+# Team instructions (project-scoped guidance entities)
+ctx-sys instruction add <name>    # Add an instruction
+ctx-sys instruction list          # List instructions
 
 # Debug
 ctx-sys debug health              # System health check
@@ -241,7 +257,7 @@ hyde:                    # optional
   model: gemma3:12b      # v2: gemma3:270m (lighter; remains opt-in)
 ```
 
-> **v2 planned:** `.ctxignore` (in addition to / instead of the inline `indexing.ignore` block) seeded with sensible defaults (`.yaao/`, `.lean-ctx/`, build outputs, lockfiles, secrets). See [F1.1](docs/v2/phase-1/F1.1-ignore-file-defaults.md).
+> **v2 (merged on `main`; ships in 2.0):** `ctx-sys init` writes a seeded `.ctxignore` (build outputs, dependencies, `.yaao/` / `.lean-ctx/`, lockfiles, secrets) and `.gitignore` is no longer read by default. Opt in with `indexing.use_gitignore: true` in config, or pass `--use-gitignore` on the CLI. See [F1.1](docs/v2/phase-1/F1.1-ignore-file-defaults.md).
 
 ### Global config (`~/.ctx-sys/config.yaml`)
 
@@ -270,7 +286,7 @@ providers:
 
 All grammars ship bundled as WASM via `@vscode/tree-sitter-wasm` — no per-language native compilation.
 
-Documents (Markdown, HTML, YAML, JSON, TOML, PDF, CSV, XML, plain text) are also indexed with semantic chunking. Today PDF extraction uses flat-text via `pdf-parse`; v2's [F2.3](docs/v2/phase-2/F2.3-pdf-extraction.md) plans pluggable structure-aware extraction (headings, tables, reading order).
+Documents (Markdown, HTML, YAML, JSON, TOML, PDF, CSV, XML, plain text) are also indexed with semantic chunking. Today PDF extraction uses flat-text via `pdf-parse`; v2's [F2.3](docs/v2/phase-2/F2.3-pdf-extraction.md) introduces a pluggable `PdfExtractor` interface. Tier 1 (pdf-parse wrapper that produces structured markdown with page headings + a content-addressed cache) is merged on `main`; Tier 2 (pdfjs/mupdf layout heuristics) and Tier 3 (Docling structure-aware extraction) are additive behind the same interface and deferred to follow-up commits before 2.0 ships.
 
 ## Requirements
 
