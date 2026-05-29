@@ -21,7 +21,7 @@ yaao         → multi-agent orchestrator (uses ctx-sys as native retrieval peer
 
 | Phase | Focus | Release | Status |
 | --- | --- | --- | --- |
-| 1 | Focus & Sharpen | 2.0.0 (code) | Planned |
+| 1 | Focus & Sharpen | 2.0.0 (code) | **Code complete** (F1.0–F1.6 merged; F1.4 partial — see deferrals below) |
 | 2 | Better Defaults | 2.1.0+ | Planned, post-2.0 |
 | 3 | Release Engineering | 2.0.0 (ship) | Planned, gates on Phase 1 |
 
@@ -35,15 +35,15 @@ Phase 1 lands the code changes that *make* 2.0 a major version. Phase 3 is the c
 
 The 2.0 code cut. Reduces ctx-sys's surface area, picks defaults a laptop can actually run, and turns the MCP server into a clean composable peer. The actual `npm publish` ships in [Phase 3](#phase-3-release-engineering-200-ship).
 
-| Feature | Description | Doc |
-| --- | --- | --- |
-| **F1.0** | Prune conversational memory (+ `hooks`) | [phase-1/F1.0-prune-conversational-memory.md](phase-1/F1.0-prune-conversational-memory.md) |
-| **F1.1** | Ignore file defaults | [phase-1/F1.1-ignore-file-defaults.md](phase-1/F1.1-ignore-file-defaults.md) |
-| **F1.2** | Lighter default models | [phase-1/F1.2-lighter-default-models.md](phase-1/F1.2-lighter-default-models.md) |
-| **F1.3** | yaao native integration | [phase-1/F1.3-yaao-native-integration.md](phase-1/F1.3-yaao-native-integration.md) |
-| **F1.4** | MCP server polish | [phase-1/F1.4-mcp-server-polish.md](phase-1/F1.4-mcp-server-polish.md) |
-| **F1.5** | Cut the heuristic reranker | [phase-1/F1.5-cut-heuristic-reranker.md](phase-1/F1.5-cut-heuristic-reranker.md) |
-| **F1.6** | MCP init integration | [phase-1/F1.6-mcp-init.md](phase-1/F1.6-mcp-init.md) |
+| Feature | Description | Status | Doc |
+| --- | --- | --- | --- |
+| **F1.0** | Prune conversational memory (+ `hooks`) | Shipped | [phase-1/F1.0-prune-conversational-memory.md](phase-1/F1.0-prune-conversational-memory.md) |
+| **F1.1** | Ignore file defaults | Shipped | [phase-1/F1.1-ignore-file-defaults.md](phase-1/F1.1-ignore-file-defaults.md) |
+| **F1.2** | Lighter default models | Shipped | [phase-1/F1.2-lighter-default-models.md](phase-1/F1.2-lighter-default-models.md) |
+| **F1.3** | yaao native integration | Shipped | [phase-1/F1.3-yaao-native-integration.md](phase-1/F1.3-yaao-native-integration.md) |
+| **F1.4** | MCP server polish | Shipped (partial — see below) | [phase-1/F1.4-mcp-server-polish.md](phase-1/F1.4-mcp-server-polish.md) |
+| **F1.5** | Cut the heuristic reranker | Shipped | [phase-1/F1.5-cut-heuristic-reranker.md](phase-1/F1.5-cut-heuristic-reranker.md) |
+| **F1.6** | MCP init integration | Shipped | [phase-1/F1.6-mcp-init.md](phase-1/F1.6-mcp-init.md) |
 
 **Key deliverables:**
 
@@ -59,6 +59,13 @@ The 2.0 code cut. Reduces ctx-sys's surface area, picks defaults a laptop can ac
 - `ctx-sys status --json` is the canonical workspace snapshot, with a stable schema yaao can consume.
 - Heuristic reranker removed. RRF over vector + FTS + graph is the final ranking; LLM reranker remains for opt-in high-quality paths. Score `[0, 1]` normalization extracted as a standalone helper and preserved.
 - `ctx-sys init` auto-registers the MCP server in `.mcp.json`, `.cursor/mcp.json`, `~/.codex/config.toml`, and `.github/copilot-instructions.md` (default on, opt out with `--no-mcp`, `--force` replaces a mismatched entry). Mirrors yaao's F14.2 semantics so both tools behave identically. No standalone `ctx-sys mcp` subcommand — re-running `ctx-sys init --mcp` is the canonical way to wire or re-wire MCP.
+
+**F1.4 deferrals** (carried as follow-up work; not blocking Phase 1 completion):
+
+- MCP resources for entities (`ctx-sys://entity/<id>`, `ctx-sys://file/<path>`, etc.) — not needed to unblock yaao integration. Track for a follow-up pre-2.0.0 release.
+- The remaining `--json` flags + per-command schemas (`search`, `context`, `entity`, `graph`, `embed`, `summarize`, `debug`). Each is mechanically a small addition; `ctx-sys status --json` (the one yaao actually consumes) is shipped with a published schema.
+- ESLint `no-console` rule. ESLint is not installed in this repo today (`npm run lint` was broken pre-2.0 work). The stdio-hygiene regression test catches the actual failure mode; the lint rule is belt-and-braces.
+- Wrappers for noisy transitive deps (`better-sqlite3`, `pdf-parse`, tree-sitter wasm). None surfaced in the hygiene test; tighten if a real case appears.
 
 **Out of scope for Phase 1:**
 
