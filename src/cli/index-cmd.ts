@@ -34,6 +34,8 @@ export function createIndexCommand(output: CLIOutput = defaultOutput): Command {
     .option('--doc-path <path>', 'Index specific doc file or directory')
     .option('--no-embed', 'Skip embedding generation')
     .option('--embed-batch-size <n>', 'Batch size for embedding generation', '50')
+    .option('--use-gitignore', 'v2 F1.1: layer .gitignore on top of .ctxignore (default off)')
+    .option('--no-ctxignore', 'v2 F1.1: skip .ctxignore for this run')
     .action(async (directory: string, options) => {
       try {
         const projectPath = path.resolve(directory);
@@ -64,6 +66,8 @@ async function runIndex(
     docPath?: string;
     embed?: boolean;
     embedBatchSize?: string;
+    useGitignore?: boolean;
+    ctxignore?: boolean;
   },
   output: CLIOutput
 ): Promise<void> {
@@ -96,14 +100,19 @@ async function runIndex(
     // Create indexer with relationship extraction
     const indexer = new CodebaseIndexer(projectPath, entityStore, undefined, undefined, relationshipStore);
 
-    // Build index options
+    // Build index options. v2 F1.1: useGitignore / useCtxignore come
+    // from CLI flags first, then project config, then sensible defaults
+    // (.gitignore off, .ctxignore on).
+    const cfgIndexing = config.projectConfig.indexing as { use_gitignore?: boolean; use_ctxignore?: boolean; ignore?: string[] };
     const indexOptions: IndexOptions = {
       force: options.force,
       concurrency: parseInt(options.concurrency || '5', 10),
       include: options.include ? options.include.split(',').map(s => s.trim()) : undefined,
       exclude: options.exclude
         ? options.exclude.split(',').map(s => s.trim())
-        : config.projectConfig.indexing.ignore
+        : config.projectConfig.indexing.ignore,
+      useGitignore: options.useGitignore ?? cfgIndexing.use_gitignore ?? false,
+      useCtxignore: options.ctxignore ?? cfgIndexing.use_ctxignore ?? true,
     };
 
     // Add progress callback if not quiet

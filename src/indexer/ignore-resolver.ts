@@ -31,7 +31,12 @@ const DEFAULT_EXCLUDE = [
 export interface IgnoreResolverOptions {
   /** Extra patterns to exclude (from CLI or config). */
   extraExclude?: string[];
-  /** Whether to respect .gitignore (default: true). */
+  /**
+   * Whether to respect .gitignore. v2 F1.1: default flipped to `false`.
+   * .gitignore was written for a different question (what to commit)
+   * and reusing it silently surprises users when their indexed corpus
+   * contains noise or omits useful files.
+   */
   useGitignore?: boolean;
   /** Whether to respect .ctxignore (default: true). */
   useCtxignore?: boolean;
@@ -39,7 +44,7 @@ export interface IgnoreResolverOptions {
 
 /**
  * Centralized ignore pattern resolver.
- * Merges DEFAULT_EXCLUDE + .gitignore + .ctxignore + user patterns.
+ * Merges DEFAULT_EXCLUDE + .ctxignore (+ .gitignore if opted in) + user patterns.
  */
 export class IgnoreResolver {
   private matcher: (path: string) => boolean;
@@ -48,13 +53,16 @@ export class IgnoreResolver {
   constructor(projectRoot: string, options: IgnoreResolverOptions = {}) {
     const patterns: string[] = [...DEFAULT_EXCLUDE];
 
-    // Load .gitignore patterns
-    if (options.useGitignore !== false) {
+    // v2 F1.1: .gitignore is now opt-in (default false). Set
+    // `indexing.use_gitignore: true` in config or pass --use-gitignore
+    // on the CLI to layer it on.
+    if (options.useGitignore === true) {
       const gitignorePath = path.join(projectRoot, '.gitignore');
       patterns.push(...parseGitignore(gitignorePath));
     }
 
-    // Load .ctxignore patterns
+    // .ctxignore stays default-on. v2 F1.1 makes `ctx-sys init` seed it
+    // so users see the boundary in their repo on day one.
     if (options.useCtxignore !== false) {
       const ctxignorePath = path.join(projectRoot, '.ctxignore');
       patterns.push(...parseCtxignore(ctxignorePath));

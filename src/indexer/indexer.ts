@@ -346,6 +346,9 @@ export class CodebaseIndexer {
   private async discoverFiles(options: IndexOptions): Promise<string[]> {
     const resolver = new IgnoreResolver(this.projectRoot, {
       extraExclude: options.exclude,
+      // v2 F1.1: .gitignore is opt-in; .ctxignore is default-on.
+      useGitignore: options.useGitignore,
+      useCtxignore: options.useCtxignore,
     });
 
     const files: string[] = [];

@@ -91,6 +91,17 @@ export interface IndexingConfig {
   watch: boolean;
   ignore: string[];
   languages?: string[];
+  /**
+   * v2 F1.1: opt in to layering .gitignore on top of .ctxignore + the
+   * inline ignore: patterns. Defaults to false; users who want the
+   * pre-2.0 behaviour set this true (or pass --use-gitignore).
+   */
+  use_gitignore?: boolean;
+  /**
+   * v2 F1.1: opt out of reading .ctxignore (defaults to true). Useful
+   * for one-shot CLI overrides.
+   */
+  use_ctxignore?: boolean;
 }
 
 /**

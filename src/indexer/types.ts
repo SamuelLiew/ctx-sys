@@ -75,6 +75,10 @@ export interface IndexOptions {
   concurrency?: number;
   /** Progress callback */
   onProgress?: (current: number, total: number, file: string) => void;
+  /** v2 F1.1: layer .gitignore patterns on top of .ctxignore (default false). */
+  useGitignore?: boolean;
+  /** v2 F1.1: read .ctxignore (default true). */
+  useCtxignore?: boolean;
 }
 
 /**
