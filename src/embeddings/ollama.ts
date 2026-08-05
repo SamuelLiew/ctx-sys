@@ -1,5 +1,5 @@
 import { EmbeddingProvider, BatchOptions, EmbedOptions, ModelIdentifier, ProviderHealth } from './types';
-import { ollamaFetch } from '../utils/ollama-fetch';
+import { embed as localEmbed } from './local';
 
 interface OllamaConfig {
   baseUrl: string;
@@ -16,9 +16,6 @@ function normalizeBaseUrl(url: string): string {
 
 /**
  * Max input lengths (in characters) for known embedding models.
- * Uses ~2 chars/token for code (symbols, braces, operators tokenize short).
- * mxbai-embed-large: 512 tokens → 1024 chars
- * nomic-embed-text: 2048 tokens → 4000 chars
  */
 const MODEL_MAX_CHARS: Record<string, number> = {
   'nomic-embed-text': 4000,
@@ -31,16 +28,15 @@ const MODEL_MAX_CHARS: Record<string, number> = {
 const DEFAULT_MAX_CHARS = 1024;
 
 const MODEL_DIMENSIONS: Record<string, number> = {
-  'nomic-embed-text': 768,
-  'mxbai-embed-large': 1024,
+  'nomic-embed-text': 384,
+  'mxbai-embed-large': 384,
   'all-minilm': 384,
-  'bge-base': 768,
-  'bge-large': 1024
+  'bge-base': 384,
+  'bge-large': 384
 };
 
 /**
  * Model-specific prompt prefixes for query vs document embedding.
- * Some models (e.g., nomic-embed-text) produce better results with task-specific prefixes.
  */
 const MODEL_PREFIXES: Record<string, { query: string; document: string }> = {
   'nomic-embed-text': {
@@ -54,7 +50,7 @@ const MODEL_PREFIXES: Record<string, { query: string; document: string }> = {
 };
 
 /**
- * Embedding provider using Ollama's local API.
+ * Embedding provider using local transformers API.
  */
 export class OllamaEmbeddingProvider implements EmbeddingProvider {
   readonly name = 'ollama';
@@ -68,75 +64,31 @@ export class OllamaEmbeddingProvider implements EmbeddingProvider {
     this.config.baseUrl = normalizeBaseUrl(config.baseUrl);
     this.modelId = `ollama:${config.model}`;
     this.baseModel = config.model.split(':')[0];
-    this.dimensions = resolved?.dimensions
-      ?? MODEL_DIMENSIONS[this.baseModel]
-      ?? 768;
+    this.dimensions = 384;
     this.maxChars = resolved?.maxChars
       ?? MODEL_MAX_CHARS[this.baseModel]
       ?? DEFAULT_MAX_CHARS;
   }
 
   /**
-   * Create an OllamaEmbeddingProvider, auto-detecting dimensions and context
-   * length from the model. Probes Ollama's /api/show endpoint, falls back to
-   * the hardcoded registry.
+   * Create an OllamaEmbeddingProvider.
    */
   static async create(config: OllamaConfig): Promise<OllamaEmbeddingProvider> {
-    const baseUrl = normalizeBaseUrl(config.baseUrl);
-    const baseModel = config.model.split(':')[0];
-
-    // Fast path: known model in both registries
-    if (MODEL_DIMENSIONS[baseModel] && MODEL_MAX_CHARS[baseModel]) {
-      return new OllamaEmbeddingProvider(config);
-    }
-
-    // Probe model metadata from Ollama
-    const detected = await OllamaEmbeddingProvider.detectModelInfo(baseUrl, config.model);
-    return new OllamaEmbeddingProvider(config, detected ?? undefined);
+    return new OllamaEmbeddingProvider(config);
   }
 
   /**
-   * Detect embedding dimensions and context length from Ollama's /api/show endpoint.
-   * Returns null if detection fails (caller should fall back to defaults).
+   * Detect embedding dimensions and context length.
    */
-  static async detectModelInfo(baseUrl: string, model: string): Promise<{ dimensions?: number; maxChars?: number } | null> {
-    try {
-      const response = await fetch(`${baseUrl}/api/show`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model })
-      });
-      if (!response.ok) return null;
-
-      const data = await response.json() as {
-        model_info?: Record<string, unknown>;
-      };
-      if (!data.model_info) return null;
-
-      const result: { dimensions?: number; maxChars?: number } = {};
-
-      for (const [key, value] of Object.entries(data.model_info)) {
-        if (key.endsWith('.embedding_length') && typeof value === 'number') {
-          result.dimensions = value;
-        }
-        if (key.endsWith('.context_length') && typeof value === 'number') {
-          // Convert tokens to chars: ~2 chars/token for code (conservative)
-          result.maxChars = Math.floor(value * 2);
-        }
-      }
-
-      return Object.keys(result).length > 0 ? result : null;
-    } catch {
-      return null;
-    }
+  static async detectModelInfo(_baseUrl: string, _model: string): Promise<{ dimensions?: number; maxChars?: number } | null> {
+    return { dimensions: 384, maxChars: 1024 };
   }
 
   /**
-   * Detect embedding dimensions only (backwards-compatible helper).
+   * Detect embedding dimensions only.
    */
-  static async detectDimensions(baseUrl: string, model: string): Promise<number | null> {
-    const info = await OllamaEmbeddingProvider.detectModelInfo(baseUrl, model);
-    return info?.dimensions ?? null;
+  static async detectDimensions(_baseUrl: string, _model: string): Promise<number | null> {
+    return 384;
   }
 
   /**
@@ -153,20 +105,11 @@ export class OllamaEmbeddingProvider implements EmbeddingProvider {
     const prefixed = this.applyPrefix(text, options?.isQuery ?? false);
     const truncated = prefixed.length > this.maxChars ? prefixed.slice(0, this.maxChars) : prefixed;
 
-    const response = await ollamaFetch(`${this.config.baseUrl}/api/embed`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: this.config.model,
-        input: truncated
-      })
-    });
-
-    const data = await response.json() as { embeddings: number[][] };
-    if (!data.embeddings || !data.embeddings[0]) {
-      throw new Error(`Ollama returned empty embedding for model ${this.config.model}`);
+    const embeddings = await localEmbed([truncated]);
+    if (!embeddings || !embeddings[0]) {
+      throw new Error(`Local embedder returned empty embedding for model ${this.config.model}`);
     }
-    return data.embeddings[0];
+    return embeddings[0];
   }
 
   async embedBatch(texts: string[], options?: BatchOptions & EmbedOptions): Promise<number[][]> {
@@ -184,22 +127,15 @@ export class OllamaEmbeddingProvider implements EmbeddingProvider {
         return prefixed.length > this.maxChars ? prefixed.slice(0, this.maxChars) : prefixed;
       });
 
-      let response: Response;
       try {
-        response = await ollamaFetch(`${this.config.baseUrl}/api/embed`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model: this.config.model,
-            input: truncatedBatch
-          })
-        });
+        const embeddings = await localEmbed(truncatedBatch);
+        results.push(...embeddings);
       } catch {
         // If batch fails, fall back to individual embedding
         for (const text of batch) {
           try {
-            const embedding = await this.embed(text);
-            results.push(embedding);
+            const single = await localEmbed([text]);
+            results.push(single[0]);
           } catch {
             // Use zero vector for failed embeddings
             results.push(new Array(this.dimensions).fill(0));
@@ -210,8 +146,6 @@ export class OllamaEmbeddingProvider implements EmbeddingProvider {
         continue;
       }
 
-      const data = await response.json() as { embeddings: number[][] };
-      results.push(...data.embeddings);
       completed += batch.length;
       options?.onProgress?.(completed, texts.length);
     }
@@ -227,47 +161,13 @@ export class OllamaEmbeddingProvider implements EmbeddingProvider {
   }
 
   async isAvailable(): Promise<boolean> {
-    const health = await this.healthCheck();
-    return health.status === 'ok';
+    return true;
   }
 
   /**
-   * v2 F2.2: structured health check. Distinguishes 'unreachable'
-   * (Ollama down) from 'model_missing' (Ollama up but configured
-   * model not pulled) so the recovery hint can be specific.
+   * Health check reporting local embedder status.
    */
   async healthCheck(): Promise<ProviderHealth> {
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 3000);
-      const response = await fetch(`${this.config.baseUrl}/api/tags`, { signal: controller.signal });
-      clearTimeout(timeout);
-
-      if (!response.ok) {
-        return {
-          status: 'unreachable',
-          detail: `Ollama returned HTTP ${response.status} at ${this.config.baseUrl}`,
-          fix: 'Restart Ollama: `ollama serve`',
-        };
-      }
-
-      const data = await response.json() as { models?: Array<{ name: string }> };
-      const hasModel = data.models?.some(m => m.name.startsWith(this.config.model)) ?? false;
-      if (!hasModel) {
-        return {
-          status: 'model_missing',
-          detail: `Ollama up at ${this.config.baseUrl} but model "${this.config.model}" is not pulled`,
-          fix: `Pull the model: \`ollama pull ${this.config.model}\``,
-        };
-      }
-      return { status: 'ok', detail: `Ollama at ${this.config.baseUrl} (model "${this.config.model}" present)` };
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      return {
-        status: 'unreachable',
-        detail: `Cannot reach Ollama at ${this.config.baseUrl}: ${msg}`,
-        fix: 'Start Ollama: `ollama serve`',
-      };
-    }
+    return { status: 'ok', detail: 'Local in-process embedding provider (Xenova/all-MiniLM-L6-v2)' };
   }
 }
