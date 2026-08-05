@@ -1,56 +1,16 @@
 import { EmbeddingProvider, BatchOptions, EmbedOptions, ModelIdentifier, ProviderHealth } from './types';
 import { embed as localEmbed } from './local';
 
-interface OllamaConfig {
-  baseUrl: string;
+export interface LocalProviderConfig {
+  baseUrl?: string;
   model: string;
 }
 
-/**
- * Normalize base URL: replace localhost with 127.0.0.1 to avoid
- * IPv6 resolution issues on macOS where Ollama only listens on IPv4.
- */
-function normalizeBaseUrl(url: string): string {
-  return url.replace('://localhost', '://127.0.0.1');
-}
+const DEFAULT_MAX_CHARS = 512;
+const DEFAULT_DIMENSIONS = 384;
 
 /**
- * Max input lengths (in characters) for known embedding models.
- */
-const MODEL_MAX_CHARS: Record<string, number> = {
-  'nomic-embed-text': 4000,
-  'mxbai-embed-large': 1024,
-  'all-minilm': 700,
-  'bge-base': 1024,
-  'bge-large': 1024
-};
-
-const DEFAULT_MAX_CHARS = 1024;
-
-const MODEL_DIMENSIONS: Record<string, number> = {
-  'nomic-embed-text': 384,
-  'mxbai-embed-large': 384,
-  'all-minilm': 384,
-  'bge-base': 384,
-  'bge-large': 384
-};
-
-/**
- * Model-specific prompt prefixes for query vs document embedding.
- */
-const MODEL_PREFIXES: Record<string, { query: string; document: string }> = {
-  'nomic-embed-text': {
-    query: 'search_query: ',
-    document: 'search_document: '
-  },
-  'mxbai-embed-large': {
-    query: 'Represent this sentence for searching relevant passages: ',
-    document: ''
-  }
-};
-
-/**
- * Embedding provider using local transformers API.
+ * Embedding provider using local in-process transformers API (@xenova/transformers).
  */
 export class LocalEmbeddingProvider implements EmbeddingProvider {
   readonly name = 'local';
@@ -58,22 +18,16 @@ export class LocalEmbeddingProvider implements EmbeddingProvider {
   readonly dimensions: number;
   readonly maxChars: number;
 
-  private baseModel: string;
-
-  constructor(private config: OllamaConfig, resolved?: { dimensions?: number; maxChars?: number }) {
-    this.config.baseUrl = normalizeBaseUrl(config.baseUrl);
+  constructor(private config: LocalProviderConfig, resolved?: { dimensions?: number; maxChars?: number }) {
     this.modelId = `local:${config.model}`;
-    this.baseModel = config.model.split(':')[0];
-    this.dimensions = 384;
-    this.maxChars = resolved?.maxChars
-      ?? MODEL_MAX_CHARS[this.baseModel]
-      ?? DEFAULT_MAX_CHARS;
+    this.dimensions = resolved?.dimensions ?? DEFAULT_DIMENSIONS;
+    this.maxChars = resolved?.maxChars ?? DEFAULT_MAX_CHARS;
   }
 
   /**
    * Create a LocalEmbeddingProvider.
    */
-  static async create(config: OllamaConfig): Promise<LocalEmbeddingProvider> {
+  static async create(config: LocalProviderConfig): Promise<LocalEmbeddingProvider> {
     return new LocalEmbeddingProvider(config);
   }
 
@@ -81,29 +35,18 @@ export class LocalEmbeddingProvider implements EmbeddingProvider {
    * Detect embedding dimensions and context length.
    */
   static async detectModelInfo(_baseUrl: string, _model: string): Promise<{ dimensions?: number; maxChars?: number } | null> {
-    return { dimensions: 384, maxChars: 1024 };
+    return { dimensions: DEFAULT_DIMENSIONS, maxChars: DEFAULT_MAX_CHARS };
   }
 
   /**
    * Detect embedding dimensions only.
    */
   static async detectDimensions(_baseUrl: string, _model: string): Promise<number | null> {
-    return 384;
-  }
-
-  /**
-   * Apply model-specific prefix to text based on whether it's a query or document.
-   */
-  private applyPrefix(text: string, isQuery: boolean): string {
-    const prefixes = MODEL_PREFIXES[this.baseModel];
-    if (!prefixes) return text;
-    const prefix = isQuery ? prefixes.query : prefixes.document;
-    return prefix + text;
+    return DEFAULT_DIMENSIONS;
   }
 
   async embed(text: string, options?: EmbedOptions): Promise<number[]> {
-    const prefixed = this.applyPrefix(text, options?.isQuery ?? false);
-    const truncated = prefixed.length > this.maxChars ? prefixed.slice(0, this.maxChars) : prefixed;
+    const truncated = text.length > this.maxChars ? text.slice(0, this.maxChars) : text;
 
     const embeddings = await localEmbed([truncated]);
     if (!embeddings || !embeddings[0]) {
@@ -116,16 +59,11 @@ export class LocalEmbeddingProvider implements EmbeddingProvider {
     const batchSize = options?.batchSize || 10;
     const results: number[][] = [];
     let completed = 0;
-    const isQuery = options?.isQuery ?? false;
 
     for (let i = 0; i < texts.length; i += batchSize) {
       const batch = texts.slice(i, Math.min(i + batchSize, texts.length));
 
-      // Apply model-specific prefixes and truncate
-      const truncatedBatch = batch.map(t => {
-        const prefixed = this.applyPrefix(t, isQuery);
-        return prefixed.length > this.maxChars ? prefixed.slice(0, this.maxChars) : prefixed;
-      });
+      const truncatedBatch = batch.map(t => (t.length > this.maxChars ? t.slice(0, this.maxChars) : t));
 
       try {
         const embeddings = await localEmbed(truncatedBatch);

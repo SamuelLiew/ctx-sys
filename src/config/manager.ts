@@ -388,7 +388,8 @@ export class ConfigManager {
       providers: {
       },
       defaults: {
-        summarization: { provider: 'local', model: 'gemma3:270m' },
+        // Text generation features require an LLM (e.g. OpenAI or Ollama); disabled by default.
+        summarization: { provider: 'openai', model: 'gpt-4o-mini' },
         embeddings: { provider: 'local', model: 'all-MiniLM-L6-v2' }
       },
       cli: {
@@ -412,12 +413,10 @@ export class ConfigManager {
         ignore: ['node_modules', '.git', '.ctx-sys', 'dist', 'build']
       },
       summarization: {
-        // v2 F1.2: explicit opt-in. Summarization is a per-entity LLM
-        // call; many users don't enable it and shouldn't pay for it on
-        // first index.
+        // Explicit opt-in: requires external LLM provider.
         enabled: false,
-        provider: 'local',
-        model: 'gemma3:270m'
+        provider: 'openai',
+        model: 'gpt-4o-mini'
       },
       embeddings: {
         provider: 'local',
@@ -428,11 +427,9 @@ export class ConfigManager {
         strategies: ['vector', 'graph', 'fts']
       },
       hyde: {
-        // v2 F1.2: explicit opt-in. The same small model covers both
-        // HyDE and summarization, so users only pull one extra model
-        // beyond the embedder when they enable either.
+        // Explicit opt-in: requires external LLM provider for text generation.
         enabled: false,
-        model: 'gemma3:270m'
+        model: 'gpt-4o-mini'
       }
     };
   }
@@ -448,7 +445,7 @@ export const DEFAULT_GLOBAL_CONFIG: GlobalConfig = {
   providers: {
   },
   defaults: {
-    summarization: { provider: 'local', model: 'gemma3:270m' },
+    summarization: { provider: 'openai', model: 'gpt-4o-mini' },
     embeddings: { provider: 'local', model: 'all-MiniLM-L6-v2' }
   },
   cli: {
@@ -470,10 +467,9 @@ export const DEFAULT_PROJECT_CONFIG_FILE: ProjectConfigFile = {
     ignore: ['node_modules', '.git', '.ctx-sys', 'dist', 'build']
   },
   summarization: {
-    // v2 F1.2: explicit opt-in.
     enabled: false,
-    provider: 'local',
-    model: 'gemma3:270m'
+    provider: 'openai',
+    model: 'gpt-4o-mini'
   },
   embeddings: {
     provider: 'local',

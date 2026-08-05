@@ -11,7 +11,7 @@ import { sanitizeProjectId } from '../db/schema';
 import { CLIOutput, defaultOutput } from './init';
 import { EntityStore } from '../entities';
 import { EmbeddingManager } from '../embeddings/manager';
-import { LocalEmbeddingProvider } from '../embeddings/ollama';
+import { LocalEmbeddingProvider } from '../embeddings';
 
 interface EmbeddingRow {
   entity_id: string;

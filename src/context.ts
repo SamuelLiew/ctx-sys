@@ -61,7 +61,7 @@ export class AppContext {
   /**
    * Get EmbeddingManager for a project.
    */
-  async getEmbeddingManager(projectId: string, config?: ProjectConfig): Promise<EmbeddingManager> {
+  async getEmbeddingManager(projectId: string, config?: { embeddings?: { provider: any; model: string } }): Promise<EmbeddingManager> {
     if (!this.embeddingManagers.has(projectId)) {
       const provider = await this.getEmbeddingProvider(projectId, config);
       this.embeddingManagers.set(
@@ -75,7 +75,7 @@ export class AppContext {
   /**
    * Get or create an embedding provider for a project.
    */
-  private async getEmbeddingProvider(projectId: string, config?: ProjectConfig): Promise<EmbeddingProvider> {
+  private async getEmbeddingProvider(projectId: string, config?: { embeddings?: { provider: any; model: string } }): Promise<EmbeddingProvider> {
     if (!this.embeddingProviders.has(projectId)) {
       if (config?.embeddings) {
         const provider = await EmbeddingProviderFactory.create({

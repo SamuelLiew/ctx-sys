@@ -8,7 +8,7 @@ import { ConfigManager } from '../config';
 import { DatabaseConnection } from '../db/connection';
 import { EntityStore, Entity, EntityType } from '../entities';
 import { EmbeddingManager } from '../embeddings/manager';
-import { LocalEmbeddingProvider } from '../embeddings/ollama';
+import { LocalEmbeddingProvider } from '../embeddings';
 import { HyDEQueryExpander, OllamaHypotheticalProvider } from '../retrieval';
 import { CLIOutput, defaultOutput } from './init';
 

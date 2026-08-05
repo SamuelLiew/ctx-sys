@@ -14,7 +14,7 @@ import { ProjectManager } from '../project';
 import { EntityStore } from '../entities';
 import { RelationshipStore } from '../graph/relationship-store';
 import { EmbeddingManager } from '../embeddings/manager';
-import { LocalEmbeddingProvider } from '../embeddings/ollama';
+import { LocalEmbeddingProvider } from '../embeddings';
 import { preflightProvider, withLoadingIndicator } from '../embeddings';
 import { DocumentIndexer, PROSE_DOC_EXTENSIONS } from '../documents/document-indexer';
 import { InvalidInputError } from '../errors';

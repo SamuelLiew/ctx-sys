@@ -72,9 +72,9 @@ export const DEFAULT_PROJECT_CONFIG: ProjectConfig = {
     ]
   },
   summarization: {
-    enabled: true,
-    provider: 'local',
-    model: 'gemma3:270m'
+    enabled: false,
+    provider: 'openai',
+    model: 'gpt-4o-mini'
   },
   embeddings: {
     provider: 'local',

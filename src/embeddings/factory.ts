@@ -1,5 +1,5 @@
 import { EmbeddingProvider, ProviderConfig } from './types';
-import { LocalEmbeddingProvider } from './ollama';
+import { LocalEmbeddingProvider } from './local-provider';
 import { OpenAIEmbeddingProvider } from './openai';
 import { OpenAICompatibleEmbeddingProvider } from './openai-compatible';
 import { Logger, consoleLogger } from '../utils/logger';

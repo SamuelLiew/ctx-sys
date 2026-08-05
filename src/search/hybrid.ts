@@ -1,9 +1,6 @@
 import * as path from 'path';
 import { ConfigManager } from '../config';
-import { DatabaseConnection } from '../db/connection';
-import { EntityStore } from '../entities';
-import { EmbeddingManager } from '../embeddings/manager';
-import { LocalEmbeddingProvider } from '../embeddings/ollama';
+import { AppContext } from '../context';
 
 export interface SearchHybridOptions {
   project?: string;
@@ -11,6 +8,7 @@ export interface SearchHybridOptions {
   limit?: number;
   type?: string;
   threshold?: number;
+  appContext?: AppContext;
 }
 
 export async function searchHybrid(query: string, options: SearchHybridOptions = {}): Promise<any[]> {
@@ -19,21 +17,21 @@ export async function searchHybrid(query: string, options: SearchHybridOptions =
   const config = await configManager.resolve(projectPath);
 
   const dbPath = options.db || config.database.path;
-  const db = new DatabaseConnection(dbPath);
-  await db.initialize();
+
+  const ownsContext = !options.appContext;
+  const appContext = options.appContext || new AppContext(dbPath);
+  if (ownsContext) {
+    await appContext.initialize();
+  }
 
   try {
     const projectId = config.projectConfig.project.name || path.basename(projectPath);
-    const entityStore = new EntityStore(db, projectId);
+    const entityStore = appContext.getEntityStore(projectId);
     const limit = options.limit ? Number(options.limit) : 10;
     const threshold = options.threshold !== undefined ? Number(options.threshold) : 0.3;
 
     try {
-      const localProvider = await LocalEmbeddingProvider.create({
-        baseUrl: '',
-        model: config.defaults?.embeddings?.model || 'all-MiniLM-L6-v2'
-      });
-      const embeddingManager = new EmbeddingManager(db, projectId, localProvider);
+      const embeddingManager = await appContext.getEmbeddingManager(projectId, config.projectConfig);
       const similar = await embeddingManager.findSimilar(query, {
         limit,
         threshold,
@@ -61,6 +59,8 @@ export async function searchHybrid(query: string, options: SearchHybridOptions =
     });
     return keywordResults;
   } finally {
-    db.close();
+    if (ownsContext) {
+      await appContext.close();
+    }
   }
 }
