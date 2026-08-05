@@ -11,7 +11,7 @@ import { sanitizeProjectId } from '../db/schema';
 import { CLIOutput, defaultOutput } from './init';
 import { EntityStore } from '../entities';
 import { EmbeddingManager } from '../embeddings/manager';
-import { OllamaEmbeddingProvider } from '../embeddings/ollama';
+import { LocalEmbeddingProvider } from '../embeddings/ollama';
 
 interface EmbeddingRow {
   entity_id: string;
@@ -121,26 +121,26 @@ async function generateEmbeddings(
   const projectId = config.projectConfig.project.name || path.basename(projectPath);
   const prefix = sanitizeProjectId(projectId);
 
-  const ollamaProvider = await OllamaEmbeddingProvider.create({
-    baseUrl: config.providers?.ollama?.base_url || 'http://localhost:11434',
-    model: config.defaults?.embeddings?.model || 'mxbai-embed-large:latest'
+  const localProvider = await LocalEmbeddingProvider.create({
+    baseUrl: '',
+    model: config.defaults?.embeddings?.model || 'all-MiniLM-L6-v2'
   });
 
   // Handle --model-upgrade: re-embed entities with vectors from a different model
   if (options.modelUpgrade) {
-    const embeddingManager = new EmbeddingManager(db, projectId, ollamaProvider);
+    const embeddingManager = new EmbeddingManager(db, projectId, localProvider);
     const mismatchIds = embeddingManager.getModelMismatchEntityIds();
 
     if (mismatchIds.length === 0) {
       await db.close();
-      output.log(`All vectors match current model (${ollamaProvider.modelId}).`);
+      output.log(`All vectors match current model (${localProvider.modelId}).`);
       return;
     }
 
     if (options.dryRun) {
       await db.close();
       output.log(`${mismatchIds.length} entities have vectors from a different model.`);
-      output.log(`Current model: ${ollamaProvider.modelId}`);
+      output.log(`Current model: ${localProvider.modelId}`);
       return;
     }
 
@@ -211,7 +211,7 @@ async function generateEmbeddings(
 
   if (entities.length === 0) {
     // Check for model mismatch and report
-    const embeddingManager = new EmbeddingManager(db, projectId, ollamaProvider);
+    const embeddingManager = new EmbeddingManager(db, projectId, localProvider);
     const mismatchCount = embeddingManager.getModelMismatchCount();
     await db.close();
     output.log('All entities are up to date.');
@@ -238,7 +238,7 @@ async function generateEmbeddings(
   output.log(`Found ${entities.length} entities needing embeddings. Generating...`);
 
   try {
-    const embeddingManager = new EmbeddingManager(db, projectId, ollamaProvider);
+    const embeddingManager = new EmbeddingManager(db, projectId, localProvider);
     const entityStore = new EntityStore(db, projectId);
 
     // Load full entity objects for embedding
@@ -290,11 +290,11 @@ async function showEmbeddingStatus(
   const prefix = sanitizeProjectId(projectId);
 
   const currentModel = config.defaults?.embeddings?.model || 'mxbai-embed-large:latest';
-  const ollamaProvider = await OllamaEmbeddingProvider.create({
-    baseUrl: config.providers?.ollama?.base_url || 'http://localhost:11434',
+  const localProvider = await LocalEmbeddingProvider.create({
+    baseUrl: '',
     model: currentModel
   });
-  const embeddingManager = new EmbeddingManager(db, projectId, ollamaProvider);
+  const embeddingManager = new EmbeddingManager(db, projectId, localProvider);
   const detailedStats = await embeddingManager.getDetailedStats();
 
   const stats = db.get<EmbeddingStats>(`
@@ -328,7 +328,7 @@ async function showEmbeddingStatus(
 
   const result = {
     ...stats,
-    currentModel: ollamaProvider.modelId,
+    currentModel: localProvider.modelId,
     modelMismatch: detailedStats.modelMismatchCount,
     byModel: detailedStats.byModel,
     byType,
@@ -341,7 +341,7 @@ async function showEmbeddingStatus(
   }
 
   output.log(colors.bold('Embedding Status\n'));
-  output.log(`  Current model:   ${ollamaProvider.modelId}`);
+  output.log(`  Current model:   ${localProvider.modelId}`);
   output.log(`  Total entities:  ${stats?.total_entities || 0}`);
   output.log(`  Embedded:        ${stats?.embedded || 0}`);
   output.log(`  Pending:         ${stats?.pending || 0}`);
@@ -360,7 +360,7 @@ async function showEmbeddingStatus(
   if (detailedStats.byModel && detailedStats.byModel.length > 1) {
     output.log(`\n${colors.bold('By Model:')}`);
     for (const m of detailedStats.byModel) {
-      const isCurrent = m.modelId === ollamaProvider.modelId;
+      const isCurrent = m.modelId === localProvider.modelId;
       const label = isCurrent ? `${m.modelId} (current)` : m.modelId;
       output.log(`  ${label}: ${m.count} vectors`);
     }

@@ -35,12 +35,12 @@ export interface IndexingConfig {
 
 export interface SummarizationConfig {
   enabled: boolean;
-  provider: 'ollama' | 'openai' | 'anthropic';
+  provider: 'local' | 'ollama' | 'openai' | 'anthropic';
   model: string;
 }
 
 export interface EmbeddingsConfig {
-  provider: 'ollama' | 'openai';
+  provider: 'local' | 'ollama' | 'openai';
   model: string;
 }
 
@@ -73,12 +73,12 @@ export const DEFAULT_PROJECT_CONFIG: ProjectConfig = {
   },
   summarization: {
     enabled: true,
-    provider: 'ollama',
+    provider: 'local',
     model: 'gemma3:270m'
   },
   embeddings: {
-    provider: 'ollama',
-    model: 'mxbai-embed-large:latest'
+    provider: 'local',
+    model: 'all-MiniLM-L6-v2'
   },
   sessions: {
     retention: 30,

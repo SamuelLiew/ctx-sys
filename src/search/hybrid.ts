@@ -3,7 +3,7 @@ import { ConfigManager } from '../config';
 import { DatabaseConnection } from '../db/connection';
 import { EntityStore } from '../entities';
 import { EmbeddingManager } from '../embeddings/manager';
-import { OllamaEmbeddingProvider } from '../embeddings/ollama';
+import { LocalEmbeddingProvider } from '../embeddings/ollama';
 
 export interface SearchHybridOptions {
   project?: string;
@@ -29,11 +29,11 @@ export async function searchHybrid(query: string, options: SearchHybridOptions =
     const threshold = options.threshold !== undefined ? Number(options.threshold) : 0.3;
 
     try {
-      const ollamaProvider = await OllamaEmbeddingProvider.create({
-        baseUrl: config.providers?.ollama?.base_url || 'http://localhost:11434',
-        model: config.defaults?.embeddings?.model || 'all-minilm'
+      const localProvider = await LocalEmbeddingProvider.create({
+        baseUrl: '',
+        model: config.defaults?.embeddings?.model || 'all-MiniLM-L6-v2'
       });
-      const embeddingManager = new EmbeddingManager(db, projectId, ollamaProvider);
+      const embeddingManager = new EmbeddingManager(db, projectId, localProvider);
       const similar = await embeddingManager.findSimilar(query, {
         limit,
         threshold,

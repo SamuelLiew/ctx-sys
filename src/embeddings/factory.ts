@@ -1,5 +1,5 @@
 import { EmbeddingProvider, ProviderConfig } from './types';
-import { OllamaEmbeddingProvider } from './ollama';
+import { LocalEmbeddingProvider } from './ollama';
 import { OpenAIEmbeddingProvider } from './openai';
 import { OpenAICompatibleEmbeddingProvider } from './openai-compatible';
 import { Logger, consoleLogger } from '../utils/logger';
@@ -16,9 +16,15 @@ export class EmbeddingProviderFactory {
    */
   static async create(config: ProviderConfig): Promise<EmbeddingProvider> {
     switch (config.provider) {
+      case 'local':
+        return LocalEmbeddingProvider.create({
+          baseUrl: '',
+          model: config.model || 'all-MiniLM-L6-v2'
+        });
+
       case 'ollama':
-        return OllamaEmbeddingProvider.create({
-          baseUrl: config.baseUrl || 'http://localhost:11434',
+        return LocalEmbeddingProvider.create({
+          baseUrl: config.baseUrl || '',
           model: config.model
         });
 

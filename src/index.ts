@@ -54,7 +54,7 @@ export { EntityStore, Entity, EntityType, EntityCreateInput, EntityUpdateInput, 
 export {
   EmbeddingManager,
   EmbeddingProviderFactory,
-  OllamaEmbeddingProvider,
+  LocalEmbeddingProvider,
   OpenAIEmbeddingProvider,
   MockEmbeddingProvider,
   EmbeddingProvider,

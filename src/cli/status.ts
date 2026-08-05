@@ -11,8 +11,7 @@ import { colors } from './formatters';
 import { CLIOutput, defaultOutput } from './init';
 import {
   CheckResult,
-  checkOllamaService,
-  checkModel,
+  checkLocalEmbedder,
   checkDatabase,
   checkConfig,
   checkProject,
@@ -27,15 +26,15 @@ export function createStatusCommand(output: CLIOutput = defaultOutput): Command 
     .description('Show project status and health checks')
     .argument('[directory]', 'Project directory', '.')
     .option('-d, --db <path>', 'Custom database path')
-    .option('--check', 'Run full health checks (Ollama, models, database)', false)
+    .option('--check', 'Run full health checks (Local Embedder, database)', false)
     .option('--json', 'Output as JSON', false)
     .addHelpText('after', `
 Examples:
   ctx-sys status                # quick local snapshot
-  ctx-sys status --check        # full diagnostics (probes Ollama, models, DB)
+  ctx-sys status --check        # full diagnostics (probes Local Embedder, DB)
   ctx-sys status --json         # machine-readable, schema: schema/status.schema.json
 
-\`--check\` runs network probes and is slower; the default is fast and
+\`--check\` runs health checks; the default is fast and
 local-only. v2 F2.2 will add 'ctx-sys doctor' as the canonical
 diagnostic name; --check is the bridge until then.
 `)
@@ -88,31 +87,9 @@ async function runStatus(
   }
 
   if (options.check) {
-    // Full health check mode (replaces doctor command)
-    let ollamaUrl = 'http://localhost:11434';
-    let embeddingModel = 'mxbai-embed-large:latest';
-    let hydeModel = 'gemma3:270m';
-    let summarizationModel = 'gemma3:270m';
-
-    try {
-      ollamaUrl = config.providers?.ollama?.base_url || ollamaUrl;
-      embeddingModel = config.projectConfig?.embeddings?.model || embeddingModel;
-      hydeModel = config.projectConfig?.hyde?.model || hydeModel;
-      summarizationModel = config.projectConfig?.summarization?.model || summarizationModel;
-    } catch {
-      // Use defaults
-    }
-
     const checks: CheckResult[] = [];
 
-    const ollamaResult = await checkOllamaService(ollamaUrl);
-    checks.push(ollamaResult);
-    const ollamaOk = ollamaResult.status === 'ok';
-
-    checks.push(checkModel('Embedding Model', embeddingModel, ollamaResult.models, ollamaOk, 'fail'));
-    checks.push(checkModel('HyDE Model', hydeModel, ollamaResult.models, ollamaOk, 'warn'));
-    checks.push(checkModel('Summarization Model', summarizationModel, ollamaResult.models, ollamaOk, 'warn'));
-
+    checks.push(await checkLocalEmbedder());
     checks.push(await checkDatabase(dbPath));
     checks.push(await checkConfig(projectPath));
     checks.push(await checkProject(dbPath, projectPath));

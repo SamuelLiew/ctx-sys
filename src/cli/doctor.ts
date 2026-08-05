@@ -1,6 +1,6 @@
 /**
  * F10h.1: ctx-sys doctor — Environment health check command.
- * Verifies Ollama, models, database, config, and project state.
+ * Verifies local embedder, database, config, and project state.
  */
 
 import { Command } from 'commander';
@@ -20,62 +20,20 @@ export interface CheckResult {
 }
 
 /**
- * Normalize localhost to 127.0.0.1 to avoid macOS IPv6 issues.
+ * Check local embedding provider availability.
  */
-function normalizeBaseUrl(url: string): string {
-  return url.replace('://localhost', '://127.0.0.1');
-}
-
-/**
- * Check Ollama service connectivity.
- */
-export async function checkOllamaService(baseUrl: string): Promise<CheckResult & { models?: string[] }> {
-  const url = normalizeBaseUrl(baseUrl);
+export async function checkLocalEmbedder(): Promise<CheckResult> {
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 3000);
-    const response = await fetch(`${url}/api/tags`, { signal: controller.signal });
-    clearTimeout(timeout);
-
-    if (!response.ok) {
-      return { name: 'Ollama Service', status: 'fail', detail: `HTTP ${response.status} at ${url}`, fix: 'ollama serve' };
+    const { embed } = await import('../embeddings/local.js');
+    const result = await embed(['health check']);
+    if (result && result[0] && result[0].length === 384) {
+      return { name: 'Local Embedder', status: 'ok', detail: 'Xenova/all-MiniLM-L6-v2 (384 dims)' };
     }
-
-    const data = await response.json() as { models?: Array<{ name: string }> };
-    const modelNames = data.models?.map(m => m.name) || [];
-    return { name: 'Ollama Service', status: 'ok', detail: `${url} (${modelNames.length} models)`, models: modelNames };
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message.includes('abort') || message.includes('timeout')) {
-      return { name: 'Ollama Service', status: 'fail', detail: `Timeout connecting to ${url}`, fix: 'ollama serve' };
-    }
-    return { name: 'Ollama Service', status: 'fail', detail: `Cannot connect to ${url}`, fix: 'ollama serve' };
+    return { name: 'Local Embedder', status: 'fail', detail: 'Unexpected embedding output', fix: 'Reinstall: npm install @xenova/transformers' };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { name: 'Local Embedder', status: 'fail', detail: `Failed to load: ${msg}`, fix: 'Reinstall: npm install @xenova/transformers' };
   }
-}
-
-/**
- * Check if a specific model is available in Ollama.
- */
-export function checkModel(
-  label: string,
-  model: string,
-  models: string[] | undefined,
-  ollamaOk: boolean,
-  severity: 'fail' | 'warn'
-): CheckResult {
-  if (!ollamaOk) {
-    return { name: label, status: 'warn', detail: 'Skipped (Ollama not available)' };
-  }
-
-  if (!models) {
-    return { name: label, status: severity, detail: `${model} — cannot check`, fix: `ollama pull ${model}` };
-  }
-
-  const found = models.some(m => m === model || m.startsWith(model.split(':')[0]));
-  if (found) {
-    return { name: label, status: 'ok', detail: model };
-  }
-  return { name: label, status: severity, detail: `${model} not found`, fix: `ollama pull ${model}` };
 }
 
 /**
@@ -325,21 +283,13 @@ export function createDoctorCommand(output: CLIOutput = defaultOutput): Command 
     .action(async (options) => {
       const projectPath = path.resolve(options.project);
 
-      // Resolve config for Ollama URL and database path
-      let ollamaUrl = 'http://localhost:11434';
+      // Resolve config for database path
       let dbPath = '';
-      let embeddingModel = 'mxbai-embed-large:latest';
-      let hydeModel = 'gemma3:270m';
-      let summarizationModel = 'gemma3:270m';
 
       try {
         const configManager = new ConfigManager({ inMemoryOnly: true });
         const resolved = await configManager.resolve(projectPath);
-        ollamaUrl = resolved.providers?.ollama?.base_url || ollamaUrl;
         dbPath = options.db || resolved.database.path;
-        embeddingModel = resolved.projectConfig?.embeddings?.model || embeddingModel;
-        hydeModel = resolved.projectConfig?.hyde?.model || hydeModel;
-        summarizationModel = resolved.projectConfig?.summarization?.model || summarizationModel;
       } catch {
         // Use defaults if config resolution fails — local DB
         if (options.db) {
@@ -352,19 +302,13 @@ export function createDoctorCommand(output: CLIOutput = defaultOutput): Command 
       // Run all checks
       const checks: CheckResult[] = [];
 
-      // v2 F2.2: native-module checks first — these are the silent-
-      // degradation cases users least expect.
+      // Native-module checks first.
       checks.push(checkNodeVersion());
       checks.push(await checkBetterSqlite3());
       checks.push(await checkSqliteVec());
 
-      const ollamaResult = await checkOllamaService(ollamaUrl);
-      checks.push(ollamaResult);
-      const ollamaOk = ollamaResult.status === 'ok';
-
-      checks.push(checkModel('Embedding Model', embeddingModel, ollamaResult.models, ollamaOk, 'fail'));
-      checks.push(checkModel('HyDE Model', hydeModel, ollamaResult.models, ollamaOk, 'warn'));
-      checks.push(checkModel('Summarization Model', summarizationModel, ollamaResult.models, ollamaOk, 'warn'));
+      // Local embedder check.
+      checks.push(await checkLocalEmbedder());
 
       checks.push(await checkDatabase(dbPath));
       checks.push(await checkConfig(projectPath));

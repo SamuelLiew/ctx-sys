@@ -386,11 +386,10 @@ export class ConfigManager {
         path: join(homedir(), '.ctx-sys', 'ctx-sys.db')
       },
       providers: {
-        ollama: { base_url: 'http://localhost:11434' }
       },
       defaults: {
-        summarization: { provider: 'ollama', model: 'gemma3:270m' },
-        embeddings: { provider: 'ollama', model: 'mxbai-embed-large:latest' }
+        summarization: { provider: 'local', model: 'gemma3:270m' },
+        embeddings: { provider: 'local', model: 'all-MiniLM-L6-v2' }
       },
       cli: {
         colors: true,
@@ -417,12 +416,12 @@ export class ConfigManager {
         // call; many users don't enable it and shouldn't pay for it on
         // first index.
         enabled: false,
-        provider: 'ollama',
+        provider: 'local',
         model: 'gemma3:270m'
       },
       embeddings: {
-        provider: 'ollama',
-        model: 'mxbai-embed-large:latest'
+        provider: 'local',
+        model: 'all-MiniLM-L6-v2'
       },
       retrieval: {
         default_max_tokens: 4000,
@@ -447,11 +446,10 @@ export const DEFAULT_GLOBAL_CONFIG: GlobalConfig = {
     path: join(homedir(), '.ctx-sys', 'ctx-sys.db')
   },
   providers: {
-    ollama: { base_url: 'http://localhost:11434' }
   },
   defaults: {
-    summarization: { provider: 'ollama', model: 'gemma3:270m' },
-    embeddings: { provider: 'ollama', model: 'mxbai-embed-large:latest' }
+    summarization: { provider: 'local', model: 'gemma3:270m' },
+    embeddings: { provider: 'local', model: 'all-MiniLM-L6-v2' }
   },
   cli: {
     colors: true,
@@ -474,12 +472,12 @@ export const DEFAULT_PROJECT_CONFIG_FILE: ProjectConfigFile = {
   summarization: {
     // v2 F1.2: explicit opt-in.
     enabled: false,
-    provider: 'ollama',
+    provider: 'local',
     model: 'gemma3:270m'
   },
   embeddings: {
-    provider: 'ollama',
-    model: 'mxbai-embed-large:latest'
+    provider: 'local',
+    model: 'all-MiniLM-L6-v2'
   },
   retrieval: {
     default_max_tokens: 4000,

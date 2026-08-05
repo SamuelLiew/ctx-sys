@@ -14,7 +14,7 @@ import { ProjectManager } from '../project';
 import { EntityStore } from '../entities';
 import { RelationshipStore } from '../graph/relationship-store';
 import { EmbeddingManager } from '../embeddings/manager';
-import { OllamaEmbeddingProvider } from '../embeddings/ollama';
+import { LocalEmbeddingProvider } from '../embeddings/ollama';
 import { preflightProvider, withLoadingIndicator } from '../embeddings';
 import { DocumentIndexer, PROSE_DOC_EXTENSIONS } from '../documents/document-indexer';
 import { InvalidInputError } from '../errors';
@@ -331,17 +331,17 @@ async function runIndex(
       }
 
       try {
-        const ollamaProvider = await OllamaEmbeddingProvider.create({
-          baseUrl: config.providers?.ollama?.base_url || 'http://localhost:11434',
-          model: config.defaults?.embeddings?.model || 'mxbai-embed-large:latest'
+        const localProvider = await LocalEmbeddingProvider.create({
+          baseUrl: '',
+          model: config.defaults?.embeddings?.model || 'all-MiniLM-L6-v2'
         });
 
         // v2 F2.2: preflight before the work starts. Fail fast with a
         // clean message instead of a deep stack trace from the first
         // real embed call.
-        await preflightProvider(ollamaProvider);
+        await preflightProvider(localProvider);
 
-        const embeddingManager = new EmbeddingManager(db, projectId, ollamaProvider);
+        const embeddingManager = new EmbeddingManager(db, projectId, localProvider);
 
         const batchSize = parseInt(options.embedBatchSize || '50', 10);
         let totalEmbedded = 0;
@@ -363,7 +363,7 @@ async function runIndex(
             }
           });
           const pageResult = firstBatch
-            ? await withLoadingIndicator(ollamaProvider.modelId, runBatch)
+            ? await withLoadingIndicator(localProvider.modelId, runBatch)
             : await runBatch();
           firstBatch = false;
           totalEmbedded += pageResult.embedded;

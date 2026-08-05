@@ -1,6 +1,6 @@
 export { EmbeddingManager, IncrementalEmbedResult, EmbeddingStats } from './manager';
 export { EmbeddingProviderFactory } from './factory';
-export { OllamaEmbeddingProvider } from './ollama';
+export { LocalEmbeddingProvider } from './ollama';
 export { OpenAIEmbeddingProvider } from './openai';
 export { OpenAICompatibleEmbeddingProvider } from './openai-compatible';
 export { MockEmbeddingProvider } from './mock';

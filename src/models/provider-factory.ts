@@ -5,7 +5,7 @@
 
 import {
   EmbeddingProvider,
-  OllamaEmbeddingProvider,
+  LocalEmbeddingProvider,
   OpenAIEmbeddingProvider,
   MockEmbeddingProvider
 } from '../embeddings';
@@ -18,7 +18,7 @@ import { ollamaFetch } from '../utils/ollama-fetch';
  * Configuration for a model provider.
  */
 export interface ModelProviderConfig {
-  provider: 'ollama' | 'openai' | 'anthropic' | 'mock';
+  provider: 'local' | 'ollama' | 'openai' | 'anthropic' | 'mock';
   model: string;
 }
 
@@ -222,9 +222,10 @@ export class ProviderFactory {
     const globalConfig = await this.configManager.loadGlobal();
 
     switch (config.provider) {
+      case 'local':
       case 'ollama':
-        return OllamaEmbeddingProvider.create({
-          baseUrl: globalConfig.providers.ollama?.base_url ?? 'http://localhost:11434',
+        return LocalEmbeddingProvider.create({
+          baseUrl: '',
           model: config.model
         });
 

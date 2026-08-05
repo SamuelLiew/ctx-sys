@@ -8,7 +8,7 @@ import { ConfigManager } from '../config';
 import { DatabaseConnection } from '../db/connection';
 import { EntityStore, Entity, EntityType } from '../entities';
 import { EmbeddingManager } from '../embeddings/manager';
-import { OllamaEmbeddingProvider } from '../embeddings/ollama';
+import { LocalEmbeddingProvider } from '../embeddings/ollama';
 import { HyDEQueryExpander, OllamaHypotheticalProvider } from '../retrieval';
 import { CLIOutput, defaultOutput } from './init';
 
@@ -103,12 +103,11 @@ async function runSearch(
     if (useSemantic || options.hyde) {
       // Vector similarity search using embeddings (default: on)
       try {
-        const baseUrl = config.providers?.ollama?.base_url || 'http://localhost:11434';
-        const ollamaProvider = await OllamaEmbeddingProvider.create({
-          baseUrl,
-          model: config.defaults?.embeddings?.model || 'mxbai-embed-large:latest'
+        const localProvider = await LocalEmbeddingProvider.create({
+          baseUrl: '',
+          model: config.defaults?.embeddings?.model || 'all-MiniLM-L6-v2'
         });
-        const embeddingManager = new EmbeddingManager(db, projectId, ollamaProvider);
+        const embeddingManager = new EmbeddingManager(db, projectId, localProvider);
 
         const threshold = parseFloat(options.threshold || '0.3');
         let similar;
@@ -116,6 +115,7 @@ async function runSearch(
         if (options.hyde) {
           // HyDE: generate hypothetical answer, embed that instead
           const hydeModel = config.projectConfig?.hyde?.model || process.env.CTX_HYDE_MODEL;
+          const baseUrl = config.providers?.ollama?.base_url || 'http://localhost:11434';
           const hydeProvider = new OllamaHypotheticalProvider({ baseUrl, model: hydeModel });
           const hyde = new HyDEQueryExpander(hydeProvider, embeddingManager);
 

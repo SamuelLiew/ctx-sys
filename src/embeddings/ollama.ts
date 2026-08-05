@@ -52,8 +52,8 @@ const MODEL_PREFIXES: Record<string, { query: string; document: string }> = {
 /**
  * Embedding provider using local transformers API.
  */
-export class OllamaEmbeddingProvider implements EmbeddingProvider {
-  readonly name = 'ollama';
+export class LocalEmbeddingProvider implements EmbeddingProvider {
+  readonly name = 'local';
   readonly modelId: string;
   readonly dimensions: number;
   readonly maxChars: number;
@@ -62,7 +62,7 @@ export class OllamaEmbeddingProvider implements EmbeddingProvider {
 
   constructor(private config: OllamaConfig, resolved?: { dimensions?: number; maxChars?: number }) {
     this.config.baseUrl = normalizeBaseUrl(config.baseUrl);
-    this.modelId = `ollama:${config.model}`;
+    this.modelId = `local:${config.model}`;
     this.baseModel = config.model.split(':')[0];
     this.dimensions = 384;
     this.maxChars = resolved?.maxChars
@@ -71,10 +71,10 @@ export class OllamaEmbeddingProvider implements EmbeddingProvider {
   }
 
   /**
-   * Create an OllamaEmbeddingProvider.
+   * Create a LocalEmbeddingProvider.
    */
-  static async create(config: OllamaConfig): Promise<OllamaEmbeddingProvider> {
-    return new OllamaEmbeddingProvider(config);
+  static async create(config: OllamaConfig): Promise<LocalEmbeddingProvider> {
+    return new LocalEmbeddingProvider(config);
   }
 
   /**
@@ -156,7 +156,7 @@ export class OllamaEmbeddingProvider implements EmbeddingProvider {
   getModelIdentifier(): ModelIdentifier {
     return {
       name: this.config.model,
-      provider: 'ollama',
+      provider: 'local',
     };
   }
 

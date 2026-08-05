@@ -2,7 +2,7 @@ import * as path from 'path';
 import { DatabaseConnection } from './db/connection';
 import { ProjectManager, ProjectConfig } from './project';
 import { EntityStore } from './entities';
-import { EmbeddingManager, EmbeddingProviderFactory, EmbeddingProvider, MockEmbeddingProvider, OllamaEmbeddingProvider } from './embeddings';
+import { EmbeddingManager, EmbeddingProviderFactory, EmbeddingProvider, MockEmbeddingProvider, LocalEmbeddingProvider } from './embeddings';
 import { Logger, consoleLogger } from './utils/logger';
 
 /**
@@ -84,12 +84,10 @@ export class AppContext {
         });
         this.embeddingProviders.set(projectId, provider);
       } else {
-        // Default to Ollama with mxbai-embed-large to match stored embeddings.
-        // Falls back to mock if Ollama is unavailable (semantic search will
-        // gracefully degrade via per-strategy error handling).
-        this.embeddingProviders.set(projectId, await OllamaEmbeddingProvider.create({
-          baseUrl: 'http://localhost:11434',
-          model: 'mxbai-embed-large:latest'
+        // Default to local in-process embeddings.
+        this.embeddingProviders.set(projectId, await LocalEmbeddingProvider.create({
+          baseUrl: '',
+          model: 'all-MiniLM-L6-v2'
         }));
       }
     }

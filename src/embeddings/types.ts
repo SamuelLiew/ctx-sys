@@ -83,7 +83,7 @@ export interface ProviderConfig {
    * custom base_url; 'openai' is the same code path with
    * base_url defaulted to api.openai.com and stricter auth.
    */
-  provider: 'ollama' | 'openai' | 'openai-compatible';
+  provider: 'local' | 'ollama' | 'openai' | 'openai-compatible';
   model: string;
   baseUrl?: string;
   apiKey?: string;
