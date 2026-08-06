@@ -80,11 +80,8 @@ function installModelFiles(sourceDir: string, targetDir: string): void {
 
 async function ensureModelAvailable(): Promise<string> {
   const modelDir = getModelDir();
-
-  // Already have everything?
   if (modelIsReady(modelDir)) return modelDir;
 
-  // Try Kaggle download first
   if (!fs.existsSync(path.join(modelDir, 'config.json'))) {
     const downloadedPath = await downloadFromKaggle();
     let sourceDir = downloadedPath;
@@ -101,14 +98,10 @@ async function ensureModelAvailable(): Promise<string> {
     installModelFiles(sourceDir, modelDir);
   }
 
-  // Convert safetensors -> ONNX if needed
   if (!getOnnxPath(modelDir)) {
     const script = path.join(process.cwd(), 'scripts', 'convert-to-onnx.py');
     if (!fs.existsSync(script)) {
-      throw new Error(
-        `ONNX model missing and converter not found at ${script}.\n` +
-        `Create scripts/convert-to-onnx.py or download a pre-converted ONNX model.`
-      );
+      throw new Error(`ONNX model missing and converter not found at ${script}.`);
     }
     console.error(`[ctx-sys] ONNX missing. Running conversion...`);
     const { stderr } = await execAsync(
@@ -159,7 +152,7 @@ function meanPool(
         pooled[h] += outputData[tokOff + s * hiddenSize + h] * m;
       }
     }
-    for (let h = 0; h < hiddenSize; h++) pooled[h] /= maskSum;
+    for (let h = 0; h < hiddenSize; h++) pooled[h] /= maskSum || 1;
 
     let norm = 0;
     for (const v of pooled) norm += v * v;
@@ -176,19 +169,25 @@ export async function embed(texts: string[]): Promise<number[][]> {
 
   if (!session) {
     const ort = await import('onnxruntime-node');
+
+    const modelPath = getOnnxPath(modelDir)!;
+    console.error(`[ctx-sys] Loading ONNX session: ${path.basename(modelPath)}`);
+    console.error(`[ctx-sys] This may take 2–3 minutes for large models on first load...`);
+
+    session = await ort.InferenceSession.create(modelPath, {
+      executionProviders: ['cpu'],
+      graphOptimizationLevel: 'basic', // 'all' is too slow for large models
+    });
+    console.error(`[ctx-sys] ONNX session ready.`);
+
     const { AutoTokenizer, env } = await import('@xenova/transformers');
     env.allowLocalModels = true;
     env.allowRemoteModels = false;
     env.localModelPath = getModelsBasePath();
 
-    const modelPath = getOnnxPath(modelDir)!;
-    console.error(`[ctx-sys] Loading ONNX: ${path.basename(modelPath)}`);
-
-    session = await ort.InferenceSession.create(modelPath, {
-      executionProviders: ['cpu'],
-      graphOptimizationLevel: 'all',
-    });
+    console.error(`[ctx-sys] Loading tokenizer for ${MODEL_NAME} from ${getModelsBasePath()}...`);
     tokenizer = await AutoTokenizer.from_pretrained(MODEL_NAME, { local_files_only: true });
+    console.error(`[ctx-sys] Tokenizer ready.`);
   }
 
   const encoded = await tokenizer(texts, {
