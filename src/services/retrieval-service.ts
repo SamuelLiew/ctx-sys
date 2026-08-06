@@ -8,7 +8,7 @@ import { RelationshipStore } from '../graph';
 import {
   MultiStrategySearch, ContextAssembler, SearchResult,
   ContextExpander, RetrievalGate, QueryDecomposer, HyDEQueryExpander,
-  OllamaHypotheticalProvider
+  MockHypotheticalProvider
 } from '../retrieval';
 import { GraphTraversal } from '../graph';
 import { QueryOptions, ContextResult } from './types';
@@ -81,9 +81,7 @@ export class RetrievalService {
       try {
         const project = await this.context.projectManager.get(projectId);
         const embeddingManager = await this.context.getEmbeddingManager(projectId, project?.config);
-        const baseUrl = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
-        const hydeModel = options?.hydeModel || project?.config?.hyde?.model || process.env.CTX_HYDE_MODEL;
-        const hydeProvider = new OllamaHypotheticalProvider({ baseUrl, model: hydeModel });
+        const hydeProvider = new MockHypotheticalProvider();
         const hyde = new HyDEQueryExpander(hydeProvider, embeddingManager);
         const result = await hyde.getSearchEmbedding(query, projectId, {
           entityTypes: options?.includeTypes

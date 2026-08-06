@@ -40,7 +40,7 @@ export interface IndexOptions {
   languages?: string[];
   summarize?: boolean;
   force?: boolean;
-  /** Generate embeddings for indexed entities (default: true, requires Ollama) */
+  /** Generate embeddings for indexed entities (default: true) */
   generateEmbeddings?: boolean;
 }
 

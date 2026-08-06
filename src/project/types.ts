@@ -35,12 +35,12 @@ export interface IndexingConfig {
 
 export interface SummarizationConfig {
   enabled: boolean;
-  provider: 'local' | 'ollama' | 'openai';
+  provider: 'local' | 'mock';
   model: string;
 }
 
 export interface EmbeddingsConfig {
-  provider: 'local' | 'ollama' | 'openai';
+  provider: 'local' | 'mock';
   model: string;
 }
 
@@ -73,8 +73,8 @@ export const DEFAULT_PROJECT_CONFIG: ProjectConfig = {
   },
   summarization: {
     enabled: false,
-    provider: 'openai',
-    model: 'gpt-4o-mini'
+    provider: 'mock',
+    model: 'mock'
   },
   embeddings: {
     provider: 'local',

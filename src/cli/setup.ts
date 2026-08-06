@@ -32,8 +32,8 @@ function writeMinimalConfig(projectPath: string, output: CLIOutput): void {
     project: { name: path.basename(projectPath) },
     indexing: { mode: 'incremental', watch: false, ignore: ['node_modules', '.git', '.ctx-sys', 'dist', 'build'] },
     embeddings: { provider: 'local', model: 'all-MiniLM-L6-v2' },
-    summarization: { enabled: false, provider: 'openai', model: 'gpt-4o-mini' },
-    hyde: { enabled: false, model: 'gpt-4o-mini' },
+    summarization: { enabled: false, provider: 'mock', model: 'mock' },
+    hyde: { enabled: false, model: 'all-MiniLM-L6-v2' },
     retrieval: { default_max_tokens: 4000, strategies: ['vector', 'graph', 'fts'] },
   };
   fs.mkdirSync(path.dirname(configPath), { recursive: true });

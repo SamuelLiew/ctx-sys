@@ -119,45 +119,6 @@ export class MockHypotheticalProvider implements HypotheticalProvider {
   }
 }
 
-/**
- * Ollama-backed hypothetical provider using a local LLM.
- */
-export class OllamaHypotheticalProvider implements HypotheticalProvider {
-  private baseUrl: string;
-  private model: string;
-
-  constructor(options?: { baseUrl?: string; model?: string }) {
-    this.baseUrl = options?.baseUrl || 'http://localhost:11434';
-    this.model = options?.model || 'gemma3:270m';
-  }
-
-  async generate(query: string, options?: HypotheticalOptions): Promise<string> {
-    const { system, user } = buildHypotheticalMessages(query, options);
-
-    const response = await fetch(`${this.baseUrl}/api/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: this.model,
-        messages: [
-          { role: 'system', content: system },
-          { role: 'user', content: user }
-        ],
-        stream: false,
-        options: {
-          temperature: 0.3,
-          num_predict: options?.maxTokens ?? 150
-        }
-      })
-    });
-
-    const data = await response.json() as { message: { content: string } };
-    // Strip <think> blocks from reasoning models (Qwen3, etc.)
-    let cleaned = data.message.content.replace(/<think>[\s\S]*?<\/think>/g, '');
-    cleaned = cleaned.replace(/^<think>[\s\S]*$/, '');
-    return cleaned.trim();
-  }
-}
 
 /**
  * Expands queries using Hypothetical Document Embeddings (HyDE).

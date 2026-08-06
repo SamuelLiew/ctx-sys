@@ -4,8 +4,6 @@
 export {
   CtxError,
   ErrorCode,
-  OllamaUnavailableError,
-  OllamaModelNotFoundError,
   NotFoundError,
   AlreadyExistsError,
   DatabaseError,

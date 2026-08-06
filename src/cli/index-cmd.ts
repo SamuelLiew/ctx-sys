@@ -382,7 +382,7 @@ async function runIndex(
         }
       } catch (err) {
         output.error(`Embedding generation failed: ${err instanceof Error ? err.message : String(err)}`);
-        output.log('  Make sure Ollama is running: ollama serve');
+        output.log('  Ensure the local embedding model is loaded properly.');
       }
     }
   } finally {

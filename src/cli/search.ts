@@ -9,7 +9,7 @@ import { DatabaseConnection } from '../db/connection';
 import { EntityStore, Entity, EntityType } from '../entities';
 import { EmbeddingManager } from '../embeddings/manager';
 import { LocalEmbeddingProvider } from '../embeddings';
-import { HyDEQueryExpander, OllamaHypotheticalProvider } from '../retrieval';
+import { HyDEQueryExpander, MockHypotheticalProvider } from '../retrieval';
 import { CLIOutput, defaultOutput } from './init';
 
 /**
@@ -114,9 +114,7 @@ async function runSearch(
 
         if (options.hyde) {
           // HyDE: generate hypothetical answer, embed that instead
-          const hydeModel = config.projectConfig?.hyde?.model || process.env.CTX_HYDE_MODEL;
-          const baseUrl = 'http://localhost:11434';
-          const hydeProvider = new OllamaHypotheticalProvider({ baseUrl, model: hydeModel });
+          const hydeProvider = new MockHypotheticalProvider();
           const hyde = new HyDEQueryExpander(hydeProvider, embeddingManager);
 
           const { embedding, usedHyDE, hypothetical } = await hyde.getSearchEmbedding(

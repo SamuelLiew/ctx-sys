@@ -4,9 +4,6 @@
  */
 
 export type ErrorCode =
-  | 'OLLAMA_UNAVAILABLE'
-  | 'OLLAMA_MODEL_NOT_FOUND'
-  | 'OLLAMA_REQUEST_FAILED'
   | 'EMBEDDING_FAILED'
   | 'DATABASE_ERROR'
   | 'DATABASE_LOCKED'
@@ -49,35 +46,6 @@ export class CtxError extends Error {
       code: this.code,
       fix: this.fix,
     };
-  }
-}
-
-/** Ollama is not reachable at the configured URL. */
-export class OllamaUnavailableError extends CtxError {
-  constructor(url: string, cause?: Error) {
-    super(
-      `Cannot connect to Ollama at ${url}`,
-      'OLLAMA_UNAVAILABLE',
-      // v2 F2.1: surface both the immediate fix and the canonical
-      // diagnostic command. `ctx-sys doctor` is the F2.2 future home;
-      // until that ships, `status --check` is the bridge.
-      'Start Ollama (`ollama serve`) and confirm the URL above is reachable. Run `ctx-sys status --check` for a full diagnostic.',
-      cause,
-    );
-    this.name = 'OllamaUnavailableError';
-  }
-}
-
-/** The requested model is not pulled in Ollama. */
-export class OllamaModelNotFoundError extends CtxError {
-  constructor(model: string, cause?: Error) {
-    super(
-      `Ollama model "${model}" is not available`,
-      'OLLAMA_MODEL_NOT_FOUND',
-      `Pull the model with: ollama pull ${model}`,
-      cause,
-    );
-    this.name = 'OllamaModelNotFoundError';
   }
 }
 
@@ -155,7 +123,7 @@ export class ProviderUnavailableError extends CtxError {
     super(
       `No ${type} provider available (tried: ${tried.join(', ')})`,
       'PROVIDER_UNAVAILABLE',
-      'Ensure Ollama is running (`ollama serve`) and the configured model is pulled, or configure an OpenAI API key in `~/.ctx-sys/config.yaml`.',
+      'Ensure the local embedding provider is installed and configured.',
     );
     this.name = 'ProviderUnavailableError';
   }

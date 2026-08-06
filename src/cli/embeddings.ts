@@ -265,7 +265,7 @@ async function generateEmbeddings(
     db.save();
   } catch (err) {
     output.error(`Embedding failed: ${err instanceof Error ? err.message : String(err)}`);
-    output.log('Make sure Ollama is running with the configured embedding model.');
+    output.log('Make sure the local embedding model is loaded.');
   } finally {
     await db.close();
   }
