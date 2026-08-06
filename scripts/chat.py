@@ -38,15 +38,14 @@ from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
 # ─── Config ──────────────────────────────────────────────────────────
-DEFAULT_MODEL = os.environ.get("CTXSYS_MODEL", "coolgamerz/qwen3-coder-30b")
-HF_FALLBACK_MODEL = os.environ.get("CTXSYS_HF_MODEL", "mlx-community/Qwen2.5-Coder-32B-Instruct-4bit")
+DATASET = os.environ.get("CTXSYS_MODEL", "coolgamerz/qwen3-coder-30b")
 CTX_SYS_CMD = os.environ.get("CTXSYS_CLI_BIN", "ctx-sys")
 CTX_SYS_ARGS = ["serve"]
 
 # ─── 1. Model check / download ───────────────────────────────────────
 def ensure_model() -> str:
-    """Download via kagglehub if available; otherwise return local path or HF repo ID."""
-    model_spec = DEFAULT_MODEL
+    """Download via kagglehub if not cached; return local path."""
+    model_spec = DATASET
 
     # If it's already a valid local path or directory, use it directly
     if os.path.exists(model_spec):
@@ -55,7 +54,6 @@ def ensure_model() -> str:
 
     print(f"[chat] Checking for model '{model_spec}'...", file=sys.stderr)
 
-    # Attempt Kaggle download if kagglehub is installed
     try:
         if "/" in model_spec:
             parts = model_spec.split("/")
@@ -70,15 +68,14 @@ def ensure_model() -> str:
                 path = kagglehub.model_download(model_spec)
 
             if path and os.path.exists(path):
-                print(f"[chat] Kaggle model ready at: {path}", file=sys.stderr)
+                print(f"[chat] Model ready at: {path}", file=sys.stderr)
                 return path
     except Exception as e:
-        print(f"[chat] Kaggle download skipped ({e}).", file=sys.stderr)
+        print(f"[chat] Error: Failed to download model '{model_spec}': {e}", file=sys.stderr)
+        sys.exit(1)
 
-    # Fallback: return HuggingFace model repo ID for mlx_lm
-    fallback = model_spec if ("/" in model_spec and not model_spec.startswith("coolgamerz/")) else HF_FALLBACK_MODEL
-    print(f"[chat] Loading model via MLX / HuggingFace: '{fallback}'", file=sys.stderr)
-    return fallback
+    print(f"[chat] Error: Model path missing or invalid: {model_spec}", file=sys.stderr)
+    sys.exit(1)
 
 # ─── 2. MLX LLM wrapper ──────────────────────────────────────────────
 class MLXChat:
