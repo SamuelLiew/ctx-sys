@@ -17,8 +17,14 @@ function getModelDir(): string {
 }
 
 function modelIsReady(modelDir: string): boolean {
+  const hasOnnx =
+    fs.existsSync(path.join(modelDir, 'onnx', 'model.onnx')) ||
+    fs.existsSync(path.join(modelDir, 'onnx', 'model_quantized.onnx')) ||
+    fs.existsSync(path.join(modelDir, 'model.onnx')) ||
+    fs.existsSync(path.join(modelDir, 'model.safetensors'));
+
   return (
-    fs.existsSync(path.join(modelDir, 'onnx', 'model.onnx')) &&
+    hasOnnx &&
     fs.existsSync(path.join(modelDir, 'tokenizer.json')) &&
     fs.existsSync(path.join(modelDir, 'config.json'))
   );
@@ -83,8 +89,6 @@ async function ensureModelAvailable(): Promise<string> {
 
   const downloadedPath = await downloadFromKaggle();
 
-  // Kaggle sometimes returns a path one level above the actual files,
-  // or the dataset may be nested. Find the directory with config.json.
   let sourceDir = downloadedPath;
   if (!fs.existsSync(path.join(sourceDir, 'config.json'))) {
     const candidates = fs.readdirSync(sourceDir, { withFileTypes: true })
@@ -110,35 +114,44 @@ async function ensureModelAvailable(): Promise<string> {
   return modelDir;
 }
 
-// Singleton keyed by model name so we don't reload per request
-const embedders = new Map<string, any>();
+// Singleton cache of promises to avoid parallel re-downloads or infinite retry loops
+const embedderPromises = new Map<string, Promise<any>>();
 
 export async function embed(
   texts: string[],
   model: string = MODEL_NAME
 ): Promise<number[][]> {
-  if (!embedders.has(model)) {
-    const modelDir = await ensureModelAvailable();
+  if (!embedderPromises.has(model)) {
+    const loadPromise = (async () => {
+      const modelDir = await ensureModelAvailable();
 
-    const { pipeline, env } = await import('@xenova/transformers');
+      const { pipeline, env } = await import('@xenova/transformers');
 
-    env.allowLocalModels = true;
-    env.allowRemoteModels = false; // never phone home
-    env.localModelPath = getModelsBasePath(); // resolves {localModelPath}/{model}
+      env.allowLocalModels = true;
+      env.allowRemoteModels = false; // never phone home
+      env.localModelPath = getModelsBasePath(); // resolves {localModelPath}/{model}
 
-    try {
-      const pipe = await pipeline('feature-extraction', model);
-      embedders.set(model, pipe);
-    } catch (err: any) {
-      throw new Error(
-        `Failed to load embedder "${model}" from ${modelDir}. ` +
-        `The Kaggle model may not be compatible with @xenova/transformers. ` +
-        `Error: ${err.message}`
-      );
-    }
+      try {
+        return await pipeline('feature-extraction', model);
+      } catch (err: any) {
+        throw new Error(
+          `Failed to load embedder "${model}" from ${modelDir}.\n` +
+          `@xenova/transformers requires ONNX weights (onnx/model_quantized.onnx or onnx/model.onnx).\n` +
+          `Error: ${err.message}`
+        );
+      }
+    })();
+
+    // Store promise in map so concurrent or subsequent calls reuse the same initialization
+    embedderPromises.set(model, loadPromise);
   }
 
-  const embedder = embedders.get(model);
-  const out = await embedder(texts, { pooling: 'mean', normalize: true });
-  return out.tolist ? out.tolist() : out.map((o: any) => Array.from(o.data));
+  try {
+    const embedder = await embedderPromises.get(model)!;
+    const out = await embedder(texts, { pooling: 'mean', normalize: true });
+    return out.tolist ? out.tolist() : out.map((o: any) => Array.from(o.data));
+  } catch (err) {
+    // Keep failed promise in map or remove if caller wants to re-attempt, but prevent loop per batch
+    throw err;
+  }
 }
