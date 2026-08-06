@@ -53,21 +53,4 @@ export interface SummarizationProvider {
   summarizeBatch(items: SummarizeItem[]): Promise<string[]>;
 }
 
-/**
- * Options for Ollama provider.
- */
-export interface OllamaOptions {
-  baseUrl?: string;
-  model?: string;
-  concurrency?: number;
-}
-
-/**
- * Options for OpenAI provider.
- */
-export interface OpenAIOptions {
-  apiKey?: string;
-  model?: string;
-  baseUrl?: string;
-}
 

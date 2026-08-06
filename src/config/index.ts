@@ -13,8 +13,6 @@ export {
   ResolvedConfig,
   ProviderSettings,
   ProvidersConfig,
-  OllamaProviderConfig,
-  OpenAIProviderConfig,
   CLIConfig,
   DefaultsConfig,
   DatabaseConfig,

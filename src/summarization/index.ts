@@ -19,7 +19,5 @@ export {
   SummarizationProvider,
   SummarizeOptions,
   SummarizeItem,
-  OllamaSummarizationProvider,
-  OpenAISummarizationProvider,
   MockSummarizationProvider
 } from './providers';

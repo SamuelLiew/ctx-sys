@@ -8,10 +8,7 @@ import { LLMSummarizer } from './types';
 import {
   SummarizationProvider,
   SummarizeItem,
-  OllamaSummarizationProvider,
-  OpenAISummarizationProvider,
-  OllamaOptions,
-  OpenAIOptions
+  MockSummarizationProvider
 } from './providers';
 import { Logger, consoleLogger } from '../utils/logger';
 
@@ -21,12 +18,6 @@ import { Logger, consoleLogger } from '../utils/logger';
 export interface LLMManagerConfig {
   /** Provider preference order (custom providers can be registered) */
   providers?: string[];
-
-  /** Ollama settings */
-  ollama?: OllamaOptions;
-
-  /** OpenAI settings */
-  openai?: OpenAIOptions;
 
   /** Batch size for processing */
   batchSize?: number;
@@ -88,14 +79,13 @@ export class LLMSummarizationManager implements LLMSummarizer {
   private logger: Logger;
 
   constructor(config: LLMManagerConfig = {}) {
-    this.preferenceOrder = config.providers || ['ollama', 'openai'];
+    this.preferenceOrder = config.providers || ['mock'];
     this.batchSize = config.batchSize || 20;
     this.maxRetries = config.maxRetries || 3;
     this.logger = config.logger ?? consoleLogger;
 
     // Initialize providers
-    this.providers.set('ollama', new OllamaSummarizationProvider(config.ollama));
-    this.providers.set('openai', new OpenAISummarizationProvider(config.openai));
+    this.providers.set('mock', new MockSummarizationProvider());
   }
 
   /**

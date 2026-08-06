@@ -76,14 +76,7 @@ export interface EmbeddingRow {
 }
 
 export interface ProviderConfig {
-  /**
-   * v2 F2.2: provider family. 'ollama' speaks the native Ollama API;
-   * 'openai-compatible' covers vLLM / LM Studio / llamafile / LiteLLM
-   * and any other server exposing the OpenAI embedding shape on a
-   * custom base_url; 'openai' is the same code path with
-   * base_url defaulted to api.openai.com and stricter auth.
-   */
-  provider: 'local' | 'ollama' | 'openai' | 'openai-compatible';
+  provider: 'local' | 'mock';
   model: string;
   baseUrl?: string;
   apiKey?: string;

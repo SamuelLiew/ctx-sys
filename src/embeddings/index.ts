@@ -1,8 +1,6 @@
 export { EmbeddingManager, IncrementalEmbedResult, EmbeddingStats } from './manager';
 export { EmbeddingProviderFactory } from './factory';
 export { LocalEmbeddingProvider } from './local-provider';
-export { OpenAIEmbeddingProvider } from './openai';
-export { OpenAICompatibleEmbeddingProvider } from './openai-compatible';
 export { MockEmbeddingProvider } from './mock';
 export { hashEntityContent, buildEmbeddingContent, hashContent } from './content-hasher';
 export { chunkEntity, estimateChunkCount, Chunk, ChunkResult, ChunkOptions } from './chunker';

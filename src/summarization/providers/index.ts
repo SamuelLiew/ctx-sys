@@ -5,11 +5,7 @@
 export {
   SummarizationProvider,
   SummarizeOptions,
-  SummarizeItem,
-  OllamaOptions,
-  OpenAIOptions
+  SummarizeItem
 } from './types';
 
-export { OllamaSummarizationProvider } from './ollama';
-export { OpenAISummarizationProvider } from './openai';
 export { MockSummarizationProvider } from './mock';

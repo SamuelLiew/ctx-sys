@@ -6,31 +6,14 @@
  * Provider configuration for embeddings/summarization.
  */
 export interface ProviderSettings {
-  provider: 'local' | 'ollama' | 'openai' | 'mock';
+  provider: 'local' | 'mock';
   model: string;
-}
-
-/**
- * Ollama provider configuration.
- */
-export interface OllamaProviderConfig {
-  base_url: string;
-}
-
-/**
- * OpenAI provider configuration.
- */
-export interface OpenAIProviderConfig {
-  api_key: string;
-  base_url?: string;
 }
 
 /**
  * All provider configurations.
  */
 export interface ProvidersConfig {
-  ollama?: OllamaProviderConfig;
-  openai?: OpenAIProviderConfig;
 }
 
 /**

@@ -115,7 +115,7 @@ async function runSearch(
         if (options.hyde) {
           // HyDE: generate hypothetical answer, embed that instead
           const hydeModel = config.projectConfig?.hyde?.model || process.env.CTX_HYDE_MODEL;
-          const baseUrl = config.providers?.ollama?.base_url || 'http://localhost:11434';
+          const baseUrl = 'http://localhost:11434';
           const hydeProvider = new OllamaHypotheticalProvider({ baseUrl, model: hydeModel });
           const hyde = new HyDEQueryExpander(hydeProvider, embeddingManager);
 

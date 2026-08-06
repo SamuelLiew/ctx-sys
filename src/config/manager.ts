@@ -388,8 +388,7 @@ export class ConfigManager {
       providers: {
       },
       defaults: {
-        // Text generation features require an LLM (e.g. OpenAI or Ollama); disabled by default.
-        summarization: { provider: 'openai', model: 'gpt-4o-mini' },
+        summarization: { provider: 'mock', model: 'mock' },
         embeddings: { provider: 'local', model: 'all-MiniLM-L6-v2' }
       },
       cli: {
@@ -413,10 +412,9 @@ export class ConfigManager {
         ignore: ['node_modules', '.git', '.ctx-sys', 'dist', 'build']
       },
       summarization: {
-        // Explicit opt-in: requires external LLM provider.
         enabled: false,
-        provider: 'openai',
-        model: 'gpt-4o-mini'
+        provider: 'mock',
+        model: 'mock'
       },
       embeddings: {
         provider: 'local',
@@ -427,9 +425,8 @@ export class ConfigManager {
         strategies: ['vector', 'graph', 'fts']
       },
       hyde: {
-        // Explicit opt-in: requires external LLM provider for text generation.
         enabled: false,
-        model: 'gpt-4o-mini'
+        model: 'all-MiniLM-L6-v2'
       }
     };
   }
@@ -445,7 +442,7 @@ export const DEFAULT_GLOBAL_CONFIG: GlobalConfig = {
   providers: {
   },
   defaults: {
-    summarization: { provider: 'openai', model: 'gpt-4o-mini' },
+    summarization: { provider: 'mock', model: 'mock' },
     embeddings: { provider: 'local', model: 'all-MiniLM-L6-v2' }
   },
   cli: {
@@ -468,8 +465,8 @@ export const DEFAULT_PROJECT_CONFIG_FILE: ProjectConfigFile = {
   },
   summarization: {
     enabled: false,
-    provider: 'openai',
-    model: 'gpt-4o-mini'
+    provider: 'mock',
+    model: 'mock'
   },
   embeddings: {
     provider: 'local',
@@ -481,6 +478,6 @@ export const DEFAULT_PROJECT_CONFIG_FILE: ProjectConfigFile = {
   },
   hyde: {
     enabled: false,
-    model: 'gpt-4o-mini'
+    model: 'all-MiniLM-L6-v2'
   }
 };

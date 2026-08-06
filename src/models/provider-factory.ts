@@ -6,19 +6,17 @@
 import {
   EmbeddingProvider,
   LocalEmbeddingProvider,
-  OpenAIEmbeddingProvider,
   MockEmbeddingProvider
 } from '../embeddings';
 import { LLMSummarizer } from '../summarization';
-import { ConfigManager, GlobalConfig } from '../config';
+import { ConfigManager } from '../config';
 import { Logger, consoleLogger } from '../utils/logger';
-import { ollamaFetch } from '../utils/ollama-fetch';
 
 /**
  * Configuration for a model provider.
  */
 export interface ModelProviderConfig {
-  provider: 'local' | 'ollama' | 'openai' | 'mock';
+  provider: 'local' | 'mock';
   model: string;
 }
 
@@ -167,7 +165,6 @@ export class ProviderFactory {
    * Check if a summarization provider is healthy.
    */
   async checkSummarizationHealth(provider: LLMSummarizer): Promise<boolean> {
-    // LLMSummarizer doesn't have isAvailable, so we try a simple call
     const key = `summarizer:${provider.name ?? 'unknown'}`;
     const cached = this.getCachedHealth(key);
 
@@ -176,7 +173,6 @@ export class ProviderFactory {
     }
 
     try {
-      // Try to summarize a minimal symbol to test availability
       await provider.summarizeSymbol({
         name: 'test',
         type: 'function',
@@ -219,19 +215,10 @@ export class ProviderFactory {
    * Create an embedding provider.
    */
   private async createEmbeddingProvider(config: ModelProviderConfig): Promise<EmbeddingProvider> {
-    const globalConfig = await this.configManager.loadGlobal();
-
     switch (config.provider) {
       case 'local':
-      case 'ollama':
         return LocalEmbeddingProvider.create({
           baseUrl: '',
-          model: config.model
-        });
-
-      case 'openai':
-        return new OpenAIEmbeddingProvider({
-          apiKey: globalConfig.providers.openai?.api_key ?? process.env.OPENAI_API_KEY ?? '',
           model: config.model
         });
 
@@ -247,26 +234,10 @@ export class ProviderFactory {
    * Create a summarization provider.
    */
   private async createSummarizationProvider(config: ModelProviderConfig): Promise<LLMSummarizer> {
-    const globalConfig = await this.configManager.loadGlobal();
-
     switch (config.provider) {
-      case 'ollama':
-        return new OllamaSummarizationProvider({
-          baseUrl: globalConfig.providers.ollama?.base_url ?? 'http://localhost:11434',
-          model: config.model
-        });
-
-      case 'openai':
-        return new OpenAISummarizationProvider({
-          apiKey: globalConfig.providers.openai?.api_key ?? process.env.OPENAI_API_KEY ?? '',
-          model: config.model
-        });
-
       case 'mock':
-        return new MockSummarizationProvider();
-
       default:
-        throw new Error(`Unknown summarization provider: ${config.provider}`);
+        return new MockSummarizationProvider();
     }
   }
 
@@ -306,7 +277,6 @@ export class ProviderFactory {
     const cached = this.healthCache.get(key);
     if (!cached) return undefined;
 
-    // Check if cache is still valid
     const age = Date.now() - cached.lastChecked.getTime();
     if (age > this.healthCacheTTL) {
       this.healthCache.delete(key);
@@ -325,124 +295,6 @@ export class ProviderFactory {
       lastChecked: new Date(),
       error
     });
-  }
-}
-
-/**
- * Ollama summarization provider.
- */
-class OllamaSummarizationProvider implements LLMSummarizer {
-  readonly name = 'ollama';
-  private baseUrl: string;
-  private model: string;
-
-  constructor(config: { baseUrl: string; model: string }) {
-    this.baseUrl = config.baseUrl;
-    this.model = config.model;
-  }
-
-  async summarizeSymbol(symbol: any, context?: string): Promise<string> {
-    const prompt = this.buildSymbolPrompt(symbol, context);
-    return this.complete(prompt);
-  }
-
-  async summarizeFile(parseResult: any): Promise<string> {
-    const prompt = this.buildFilePrompt(parseResult);
-    return this.complete(prompt);
-  }
-
-  private buildSymbolPrompt(symbol: any, context?: string): string {
-    let prompt = `Provide a brief one-line description for this ${symbol.type}:\n\n`;
-    prompt += `Name: ${symbol.name}\n`;
-    if (symbol.signature) prompt += `Signature: ${symbol.signature}\n`;
-    if (context) prompt += `Context: ${context}\n`;
-    prompt += '\nDescription:';
-    return prompt;
-  }
-
-  private buildFilePrompt(parseResult: any): string {
-    let prompt = `Provide a brief description of this file:\n\n`;
-    prompt += `File: ${parseResult.filePath}\n`;
-    prompt += `Symbols: ${parseResult.symbols?.length ?? 0}\n`;
-    prompt += '\nDescription:';
-    return prompt;
-  }
-
-  private async complete(prompt: string): Promise<string> {
-    const response = await ollamaFetch(`${this.baseUrl}/api/generate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: this.model,
-        prompt,
-        stream: false,
-        options: { num_predict: 100 }
-      })
-    });
-
-    const data = await response.json() as { response?: string };
-    return data.response?.trim() ?? '';
-  }
-}
-
-/**
- * OpenAI summarization provider.
- */
-class OpenAISummarizationProvider implements LLMSummarizer {
-  readonly name = 'openai';
-  private apiKey: string;
-  private model: string;
-
-  constructor(config: { apiKey: string; model: string }) {
-    this.apiKey = config.apiKey;
-    this.model = config.model;
-  }
-
-  async summarizeSymbol(symbol: any, context?: string): Promise<string> {
-    const prompt = this.buildSymbolPrompt(symbol, context);
-    return this.complete(prompt);
-  }
-
-  async summarizeFile(parseResult: any): Promise<string> {
-    const prompt = this.buildFilePrompt(parseResult);
-    return this.complete(prompt);
-  }
-
-  private buildSymbolPrompt(symbol: any, context?: string): string {
-    let prompt = `Provide a brief one-line description for this ${symbol.type}:\n\n`;
-    prompt += `Name: ${symbol.name}\n`;
-    if (symbol.signature) prompt += `Signature: ${symbol.signature}\n`;
-    if (context) prompt += `Context: ${context}\n`;
-    return prompt;
-  }
-
-  private buildFilePrompt(parseResult: any): string {
-    let prompt = `Provide a brief description of this file:\n\n`;
-    prompt += `File: ${parseResult.filePath}\n`;
-    prompt += `Symbols: ${parseResult.symbols?.length ?? 0}\n`;
-    return prompt;
-  }
-
-  private async complete(prompt: string): Promise<string> {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.apiKey}`
-      },
-      body: JSON.stringify({
-        model: this.model,
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: 100
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`OpenAI request failed: ${response.statusText}`);
-    }
-
-    const data = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
-    return data.choices?.[0]?.message?.content?.trim() ?? '';
   }
 }
 

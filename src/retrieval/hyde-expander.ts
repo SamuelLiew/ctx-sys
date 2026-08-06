@@ -5,7 +5,6 @@
 
 import { EmbeddingManager } from '../embeddings';
 import { QueryParser, ParsedQuery, QueryIntent } from './query-parser';
-import { ollamaFetch } from '../utils/ollama-fetch';
 
 /**
  * Provider interface for generating hypothetical documents.
@@ -135,7 +134,7 @@ export class OllamaHypotheticalProvider implements HypotheticalProvider {
   async generate(query: string, options?: HypotheticalOptions): Promise<string> {
     const { system, user } = buildHypotheticalMessages(query, options);
 
-    const response = await ollamaFetch(`${this.baseUrl}/api/chat`, {
+    const response = await fetch(`${this.baseUrl}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
