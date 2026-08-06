@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import * as os from 'os';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 
@@ -176,7 +177,9 @@ export async function embed(texts: string[]): Promise<number[][]> {
 
     session = await ort.InferenceSession.create(modelPath, {
       executionProviders: ['cpu'],
-      graphOptimizationLevel: 'basic', // 'all' is too slow for large models
+      graphOptimizationLevel: 'all',
+      intraOpNumThreads: Math.max(1, os.cpus().length),
+      interOpNumThreads: Math.max(1, os.cpus().length),
     });
     console.error(`[ctx-sys] ONNX session ready.`);
 
