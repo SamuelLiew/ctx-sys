@@ -38,19 +38,47 @@ from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
 # ─── Config ──────────────────────────────────────────────────────────
-DATASET = "coolgamerz/qwen3-coder-30b"
+DEFAULT_MODEL = os.environ.get("CTXSYS_MODEL", "coolgamerz/qwen3-coder-30b")
+HF_FALLBACK_MODEL = os.environ.get("CTXSYS_HF_MODEL", "mlx-community/Qwen2.5-Coder-32B-Instruct-4bit")
 CTX_SYS_CMD = os.environ.get("CTXSYS_CLI_BIN", "ctx-sys")
 CTX_SYS_ARGS = ["serve"]
 
 # ─── 1. Model check / download ───────────────────────────────────────
 def ensure_model() -> str:
-    """Download via kagglehub if not cached; return local path."""
-    print("[chat] Checking for Qwen3-Coder-30B...", file=sys.stderr)
-    path = kagglehub.dataset_download(DATASET)
-    if not os.path.exists(path):
-        raise RuntimeError(f"Model path missing after download: {path}")
-    print(f"[chat] Model ready at: {path}", file=sys.stderr)
-    return path
+    """Download via kagglehub if available; otherwise return local path or HF repo ID."""
+    model_spec = DEFAULT_MODEL
+
+    # If it's already a valid local path or directory, use it directly
+    if os.path.exists(model_spec):
+        print(f"[chat] Using local model path: {model_spec}", file=sys.stderr)
+        return model_spec
+
+    print(f"[chat] Checking for model '{model_spec}'...", file=sys.stderr)
+
+    # Attempt Kaggle download if kagglehub is installed
+    try:
+        if "/" in model_spec:
+            parts = model_spec.split("/")
+            if len(parts) == 4:
+                path = kagglehub.model_download(model_spec)
+            elif len(parts) == 2:
+                try:
+                    path = kagglehub.dataset_download(model_spec)
+                except Exception:
+                    path = kagglehub.model_download(f"{model_spec}/other/default")
+            else:
+                path = kagglehub.model_download(model_spec)
+
+            if path and os.path.exists(path):
+                print(f"[chat] Kaggle model ready at: {path}", file=sys.stderr)
+                return path
+    except Exception as e:
+        print(f"[chat] Kaggle download skipped ({e}).", file=sys.stderr)
+
+    # Fallback: return HuggingFace model repo ID for mlx_lm
+    fallback = model_spec if ("/" in model_spec and not model_spec.startswith("coolgamerz/")) else HF_FALLBACK_MODEL
+    print(f"[chat] Loading model via MLX / HuggingFace: '{fallback}'", file=sys.stderr)
+    return fallback
 
 # ─── 2. MLX LLM wrapper ──────────────────────────────────────────────
 class MLXChat:
