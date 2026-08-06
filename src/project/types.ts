@@ -35,7 +35,7 @@ export interface IndexingConfig {
 
 export interface SummarizationConfig {
   enabled: boolean;
-  provider: 'local' | 'ollama' | 'openai' | 'anthropic';
+  provider: 'local' | 'ollama' | 'openai';
   model: string;
 }
 

@@ -7,11 +7,9 @@ export {
   SummarizeOptions,
   SummarizeItem,
   OllamaOptions,
-  OpenAIOptions,
-  AnthropicOptions
+  OpenAIOptions
 } from './types';
 
 export { OllamaSummarizationProvider } from './ollama';
 export { OpenAISummarizationProvider } from './openai';
-export { AnthropicSummarizationProvider } from './anthropic';
 export { MockSummarizationProvider } from './mock';

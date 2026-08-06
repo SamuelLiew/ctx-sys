@@ -18,7 +18,7 @@ import { ollamaFetch } from '../utils/ollama-fetch';
  * Configuration for a model provider.
  */
 export interface ModelProviderConfig {
-  provider: 'local' | 'ollama' | 'openai' | 'anthropic' | 'mock';
+  provider: 'local' | 'ollama' | 'openai' | 'mock';
   model: string;
 }
 

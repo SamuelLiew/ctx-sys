@@ -21,7 +21,7 @@ export function createSummarizeCommand(output: CLIOutput = defaultOutput): Comma
     .option('-t, --type <type>', 'Only summarize entities of this type')
     .option('-f, --force', 'Regenerate all summaries')
     .option('-l, --limit <n>', 'Max entities to summarize (default: all)')
-    .option('--provider <name>', 'LLM provider: ollama, openai, anthropic')
+    .option('--provider <name>', 'LLM provider: ollama, openai')
     .option('--batch-size <n>', 'Entities per batch', '20')
     .option('--concurrency <n>', 'Concurrent requests per batch', '5')
     .option('--dry-run', 'Show what would be summarized')
@@ -165,7 +165,7 @@ async function generateSummaries(
   const provider = await manager.getProvider();
 
   if (!provider) {
-    output.error('No LLM provider available. Install Ollama or configure OpenAI/Anthropic API keys.');
+    output.error('No LLM provider available. Install Ollama or configure OpenAI API key.');
     await db.close();
     process.exit(1);
   }
@@ -288,8 +288,7 @@ async function showProviders(
 
   const providers = [
     { id: 'ollama', name: 'Ollama', available: available.includes('ollama'), description: 'Local LLM' },
-    { id: 'openai', name: 'OpenAI', available: available.includes('openai'), description: 'GPT-4o-mini' },
-    { id: 'anthropic', name: 'Anthropic', available: available.includes('anthropic'), description: 'Claude 3 Haiku' }
+    { id: 'openai', name: 'OpenAI', available: available.includes('openai'), description: 'GPT-4o-mini' }
   ];
 
   if (options.json) {
@@ -310,7 +309,6 @@ async function showProviders(
     output.log('To use summarization:');
     output.log('  - Install Ollama: https://ollama.ai');
     output.log('  - Or set OPENAI_API_KEY for OpenAI');
-    output.log('  - Or set ANTHROPIC_API_KEY for Anthropic');
   } else {
     output.log(`Active provider: ${available[0]}`);
   }

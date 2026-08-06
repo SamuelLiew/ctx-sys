@@ -71,10 +71,3 @@ export interface OpenAIOptions {
   baseUrl?: string;
 }
 
-/**
- * Options for Anthropic provider.
- */
-export interface AnthropicOptions {
-  apiKey?: string;
-  model?: string;
-}

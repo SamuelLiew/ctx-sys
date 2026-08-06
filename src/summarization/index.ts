@@ -21,6 +21,5 @@ export {
   SummarizeItem,
   OllamaSummarizationProvider,
   OpenAISummarizationProvider,
-  AnthropicSummarizationProvider,
   MockSummarizationProvider
 } from './providers';

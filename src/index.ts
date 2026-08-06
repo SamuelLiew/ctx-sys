@@ -29,7 +29,6 @@ export {
   ProvidersConfig,
   OllamaProviderConfig,
   OpenAIProviderConfig,
-  AnthropicProviderConfig,
   CLIConfig,
   DefaultsConfig,
   DatabaseConfig,

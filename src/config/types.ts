@@ -6,7 +6,7 @@
  * Provider configuration for embeddings/summarization.
  */
 export interface ProviderSettings {
-  provider: 'local' | 'ollama' | 'openai' | 'anthropic' | 'mock';
+  provider: 'local' | 'ollama' | 'openai' | 'mock';
   model: string;
 }
 
@@ -26,19 +26,11 @@ export interface OpenAIProviderConfig {
 }
 
 /**
- * Anthropic provider configuration.
- */
-export interface AnthropicProviderConfig {
-  api_key: string;
-}
-
-/**
  * All provider configurations.
  */
 export interface ProvidersConfig {
   ollama?: OllamaProviderConfig;
   openai?: OpenAIProviderConfig;
-  anthropic?: AnthropicProviderConfig;
 }
 
 /**
