@@ -356,9 +356,9 @@ async function runIndex(
           // cost so suppress the message.
           const runBatch = () => embeddingManager.embedIncremental(page, {
             batchSize,
-            onProgress: (completed, _total, skipped) => {
-              if (!options.quiet && completed % batchSize === 0) {
-                output.log(`  Progress: ${totalProcessed + completed} embedded (${totalSkipped + skipped} unchanged)`);
+            onProgress: (completed, total, skipped) => {
+              if (!options.quiet) {
+                output.log(`  Progress: ${totalProcessed + completed}/${totalProcessed + total} processed (${totalEmbedded + (completed - skipped)} embedded, ${totalSkipped + skipped} skipped)`);
               }
             }
           });
