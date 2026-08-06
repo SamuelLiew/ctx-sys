@@ -155,6 +155,29 @@ export class EntityStore {
   }
 
   /**
+   * Get multiple entities by ID using a single IN (...) query batch.
+   */
+  getBatch(ids: string[]): Map<string, Entity> {
+    const map = new Map<string, Entity>();
+    if (!ids || ids.length === 0) return map;
+
+    const uniqueIds = Array.from(new Set(ids));
+    const placeholders = uniqueIds.map(() => '?').join(',');
+
+    const rows = this.db.all<EntityRow>(
+      `SELECT * FROM ${this.tableName} WHERE id IN (${placeholders})`,
+      uniqueIds
+    );
+
+    for (const row of rows) {
+      const entity = this.rowToEntity(row);
+      map.set(entity.id, entity);
+    }
+
+    return map;
+  }
+
+  /**
    * Get an entity by name, optionally filtered by type.
    */
   getByName(name: string, type?: EntityType): Entity | null {

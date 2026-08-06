@@ -11,15 +11,38 @@ function getModelsBasePath(): string {
   return process.env.CTXSYS_MODEL_PATH || path.join(process.cwd(), 'models');
 }
 
+function getScriptPath(): string {
+  const relPath = path.join(__dirname, '..', '..', 'scripts', 'embed_mlx.py');
+  if (fs.existsSync(relPath)) return relPath;
+  const cwdPath = path.join(process.cwd(), 'scripts', 'embed_mlx.py');
+  if (fs.existsSync(cwdPath)) return cwdPath;
+  return relPath;
+}
+
 let mlxSupported: boolean | null = null;
 let pythonBin = 'python3';
 let mlxWorkerProcess: any = null;
 let mlxWorkerReadLine: any = null;
 let mlxPendingResolves: Array<{ resolve: (v: number[][]) => void; reject: (err: any) => void }> = [];
 
+function cleanupWorkers(): void {
+  if (mlxWorkerProcess) {
+    try {
+      mlxWorkerProcess.kill();
+    } catch {
+      // ignore
+    }
+    mlxWorkerProcess = null;
+  }
+}
+
+process.on('exit', cleanupWorkers);
+process.on('SIGINT', cleanupWorkers);
+process.on('SIGTERM', cleanupWorkers);
+
 async function checkMlxSupport(): Promise<boolean> {
   if (mlxSupported !== null) return mlxSupported;
-  const script = path.join(process.cwd(), 'scripts', 'embed_mlx.py');
+  const script = getScriptPath();
   if (!fs.existsSync(script)) {
     throw new Error(`MLX worker script missing at ${script}`);
   }
@@ -54,7 +77,7 @@ async function checkMlxSupport(): Promise<boolean> {
 async function getMlxWorker(): Promise<any> {
   if (mlxWorkerProcess) return mlxWorkerProcess;
 
-  const script = path.join(process.cwd(), 'scripts', 'embed_mlx.py');
+  const script = getScriptPath();
   const { spawn } = await import('child_process');
   const readline = await import('readline');
 

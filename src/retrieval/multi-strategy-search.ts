@@ -431,10 +431,15 @@ export class MultiStrategySearch {
    * Hydrate raw results with full entity data.
    */
   private async hydrateResults(results: RawResult[]): Promise<SearchResult[]> {
+    if (!results || results.length === 0) return [];
+
+    const entityIds = results.map(r => r.entityId);
+    const entityMap = this.entityStore.getBatch(entityIds);
+
     const hydrated: SearchResult[] = [];
 
     for (const result of results) {
-      const entity = await this.entityStore.get(result.entityId);
+      const entity = entityMap.get(result.entityId);
       if (entity) {
         hydrated.push({
           entity,

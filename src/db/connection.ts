@@ -46,6 +46,7 @@ export class DatabaseConnection {
   private initialized: boolean = false;
   private _vecAvailable: boolean = false;
   private logger: Logger;
+  private stmtCache = new Map<string, Database.Statement>();
 
   constructor(dbPath: string, options?: { logger?: Logger }) {
     this.dbPath = dbPath;
@@ -146,7 +147,20 @@ export class DatabaseConnection {
   }
 
   /**
-   * Execute multiple SQL statements.
+   * Get cached prepared statement or prepare a new one.
+   */
+  private getStatement(sql: string): Database.Statement {
+    let stmt = this.stmtCache.get(sql);
+    if (!stmt) {
+      const db = this.ensureInitialized();
+      stmt = db.prepare(sql);
+      this.stmtCache.set(sql, stmt);
+    }
+    return stmt;
+  }
+
+  /**
+   * Execute a raw SQL script (multiple statements).
    */
   exec(sql: string): void {
     const db = this.ensureInitialized();
@@ -157,8 +171,7 @@ export class DatabaseConnection {
    * Execute a single SQL statement with parameters.
    */
   run(sql: string, params?: unknown[]): RunResult {
-    const db = this.ensureInitialized();
-    const stmt = db.prepare(sql);
+    const stmt = this.getStatement(sql);
     const result = params && params.length > 0 ? stmt.run(...params) : stmt.run();
     return {
       changes: result.changes,
@@ -170,8 +183,7 @@ export class DatabaseConnection {
    * Execute a query and return the first row.
    */
   get<T>(sql: string, params?: unknown[]): T | undefined {
-    const db = this.ensureInitialized();
-    const stmt = db.prepare(sql);
+    const stmt = this.getStatement(sql);
     const row = params && params.length > 0 ? stmt.get(...params) : stmt.get();
     return row as T | undefined;
   }
@@ -180,8 +192,7 @@ export class DatabaseConnection {
    * Execute a query and return all rows.
    */
   all<T>(sql: string, params?: unknown[]): T[] {
-    const db = this.ensureInitialized();
-    const stmt = db.prepare(sql);
+    const stmt = this.getStatement(sql);
     const rows = params && params.length > 0 ? stmt.all(...params) : stmt.all();
     return rows as T[];
   }
@@ -206,6 +217,7 @@ export class DatabaseConnection {
    * Drop project-specific tables.
    */
   dropProject(projectId: string): void {
+    this.stmtCache.clear();
     this.exec(dropProjectTables(projectId));
   }
 
@@ -224,6 +236,7 @@ export class DatabaseConnection {
    */
   close(): void {
     if (this.db && this.initialized) {
+      this.stmtCache.clear();
       this.db.close();
       this.db = null;
       this.initialized = false;

@@ -56,15 +56,14 @@ export class LocalEmbeddingProvider implements EmbeddingProvider {
         const embeddings = await localEmbed(batch);
         results.push(...embeddings);
         completed += batch.length;
-      } catch {
-        // Fallback: one-by-one
+      } catch (batchErr) {
+        // Fallback: one-by-one to isolate failures without poisoning vector DB
         for (const text of batch) {
-          try {
-            const single = await localEmbed([text]);
-            results.push(single[0]);
-          } catch {
-            results.push(new Array(this.dimensions).fill(0));
+          const single = await localEmbed([text]);
+          if (!single?.[0]) {
+            throw new Error(`Failed to generate embedding for text block: ${batchErr}`);
           }
+          results.push(single[0]);
           completed++;
         }
       }
