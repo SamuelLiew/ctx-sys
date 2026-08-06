@@ -7,11 +7,8 @@ export interface LocalProviderConfig {
 }
 
 const DEFAULT_MAX_CHARS = 512;
-const DEFAULT_DIMENSIONS = 384;
+const DEFAULT_DIMENSIONS = 1024; // mxbai-embed-large
 
-/**
- * Embedding provider using local in-process transformers API (@xenova/transformers).
- */
 export class LocalEmbeddingProvider implements EmbeddingProvider {
   readonly name = 'local';
   readonly modelId: string;
@@ -24,32 +21,22 @@ export class LocalEmbeddingProvider implements EmbeddingProvider {
     this.maxChars = resolved?.maxChars ?? DEFAULT_MAX_CHARS;
   }
 
-  /**
-   * Create a LocalEmbeddingProvider.
-   */
   static async create(config: LocalProviderConfig): Promise<LocalEmbeddingProvider> {
     return new LocalEmbeddingProvider(config);
   }
 
-  /**
-   * Detect embedding dimensions and context length.
-   */
-  static async detectModelInfo(_baseUrl: string, _model: string): Promise<{ dimensions?: number; maxChars?: number } | null> {
+  static async detectModelInfo(): Promise<{ dimensions?: number; maxChars?: number } | null> {
     return { dimensions: DEFAULT_DIMENSIONS, maxChars: DEFAULT_MAX_CHARS };
   }
 
-  /**
-   * Detect embedding dimensions only.
-   */
-  static async detectDimensions(_baseUrl: string, _model: string): Promise<number | null> {
+  static async detectDimensions(): Promise<number> {
     return DEFAULT_DIMENSIONS;
   }
 
   async embed(text: string, options?: EmbedOptions): Promise<number[]> {
     const truncated = text.length > this.maxChars ? text.slice(0, this.maxChars) : text;
-
-    const embeddings = await localEmbed([truncated]);
-    if (!embeddings || !embeddings[0]) {
+    const embeddings = await localEmbed([truncated], this.config.model);
+    if (!embeddings?.[0]) {
       throw new Error(`Local embedder returned empty embedding for model ${this.config.model}`);
     }
     return embeddings[0];
@@ -61,30 +48,26 @@ export class LocalEmbeddingProvider implements EmbeddingProvider {
     let completed = 0;
 
     for (let i = 0; i < texts.length; i += batchSize) {
-      const batch = texts.slice(i, Math.min(i + batchSize, texts.length));
-
-      const truncatedBatch = batch.map(t => (t.length > this.maxChars ? t.slice(0, this.maxChars) : t));
+      const batch = texts.slice(i, i + batchSize).map(t =>
+        t.length > this.maxChars ? t.slice(0, this.maxChars) : t
+      );
 
       try {
-        const embeddings = await localEmbed(truncatedBatch);
+        const embeddings = await localEmbed(batch, this.config.model);
         results.push(...embeddings);
+        completed += batch.length;
       } catch {
-        // If batch fails, fall back to individual embedding
+        // Fallback: one-by-one
         for (const text of batch) {
           try {
-            const single = await localEmbed([text]);
+            const single = await localEmbed([text], this.config.model);
             results.push(single[0]);
           } catch {
-            // Use zero vector for failed embeddings
             results.push(new Array(this.dimensions).fill(0));
           }
           completed++;
-          options?.onProgress?.(completed, texts.length);
         }
-        continue;
       }
-
-      completed += batch.length;
       options?.onProgress?.(completed, texts.length);
     }
 
@@ -92,20 +75,17 @@ export class LocalEmbeddingProvider implements EmbeddingProvider {
   }
 
   getModelIdentifier(): ModelIdentifier {
-    return {
-      name: this.config.model,
-      provider: 'local',
-    };
+    return { name: this.config.model, provider: 'local' };
   }
 
   async isAvailable(): Promise<boolean> {
     return true;
   }
 
-  /**
-   * Health check reporting local embedder status.
-   */
   async healthCheck(): Promise<ProviderHealth> {
-    return { status: 'ok', detail: 'Local in-process embedding provider (Xenova/all-MiniLM-L6-v2)' };
+    return {
+      status: 'ok',
+      detail: `Local in-process embedding provider (${this.config.model}, ${this.dimensions}-dim)`
+    };
   }
 }

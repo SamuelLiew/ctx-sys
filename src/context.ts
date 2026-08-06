@@ -87,7 +87,7 @@ export class AppContext {
         // Default to local in-process embeddings.
         this.embeddingProviders.set(projectId, await LocalEmbeddingProvider.create({
           baseUrl: '',
-          model: 'all-MiniLM-L6-v2'
+          model: 'mxbai-embed-large'
         }));
       }
     }

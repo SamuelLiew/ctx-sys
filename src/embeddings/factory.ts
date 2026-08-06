@@ -15,7 +15,7 @@ export class EmbeddingProviderFactory {
       default:
         return LocalEmbeddingProvider.create({
           baseUrl: '',
-          model: config.model || 'all-MiniLM-L6-v2'
+          model: config.model || 'mxbai-embed-large'
         });
     }
   }

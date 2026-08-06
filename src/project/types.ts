@@ -78,7 +78,7 @@ export const DEFAULT_PROJECT_CONFIG: ProjectConfig = {
   },
   embeddings: {
     provider: 'local',
-    model: 'all-MiniLM-L6-v2'
+    model: 'mxbai-embed-large'
   },
   sessions: {
     retention: 30,

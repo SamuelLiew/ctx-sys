@@ -389,7 +389,7 @@ export class ConfigManager {
       },
       defaults: {
         summarization: { provider: 'mock', model: 'mock' },
-        embeddings: { provider: 'local', model: 'all-MiniLM-L6-v2' }
+        embeddings: { provider: 'local', model: 'mxbai-embed-large' }
       },
       cli: {
         colors: true,
@@ -418,7 +418,7 @@ export class ConfigManager {
       },
       embeddings: {
         provider: 'local',
-        model: 'all-MiniLM-L6-v2'
+        model: 'mxbai-embed-large'
       },
       retrieval: {
         default_max_tokens: 4000,
@@ -426,7 +426,7 @@ export class ConfigManager {
       },
       hyde: {
         enabled: false,
-        model: 'all-MiniLM-L6-v2'
+        model: 'mxbai-embed-large'
       }
     };
   }
@@ -443,7 +443,7 @@ export const DEFAULT_GLOBAL_CONFIG: GlobalConfig = {
   },
   defaults: {
     summarization: { provider: 'mock', model: 'mock' },
-    embeddings: { provider: 'local', model: 'all-MiniLM-L6-v2' }
+    embeddings: { provider: 'local', model: 'mxbai-embed-large' }
   },
   cli: {
     colors: true,
@@ -470,7 +470,7 @@ export const DEFAULT_PROJECT_CONFIG_FILE: ProjectConfigFile = {
   },
   embeddings: {
     provider: 'local',
-    model: 'all-MiniLM-L6-v2'
+    model: 'mxbai-embed-large'
   },
   retrieval: {
     default_max_tokens: 4000,
@@ -478,6 +478,6 @@ export const DEFAULT_PROJECT_CONFIG_FILE: ProjectConfigFile = {
   },
   hyde: {
     enabled: false,
-    model: 'all-MiniLM-L6-v2'
+    model: 'mxbai-embed-large'
   }
 };

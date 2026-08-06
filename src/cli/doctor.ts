@@ -26,8 +26,8 @@ export async function checkLocalEmbedder(): Promise<CheckResult> {
   try {
     const { embed } = await import('../embeddings/local.js');
     const result = await embed(['health check']);
-    if (result && result[0] && result[0].length === 384) {
-      return { name: 'Local Embedder', status: 'ok', detail: 'Xenova/all-MiniLM-L6-v2 (384 dims)' };
+    if (result && result[0] && result[0].length === 1024) {
+      return { name: 'Local Embedder', status: 'ok', detail: 'mxbai-embed-large (1024 dims)' };
     }
     return { name: 'Local Embedder', status: 'fail', detail: 'Unexpected embedding output', fix: 'Reinstall: npm install @xenova/transformers' };
   } catch (err) {

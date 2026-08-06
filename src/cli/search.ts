@@ -105,7 +105,7 @@ async function runSearch(
       try {
         const localProvider = await LocalEmbeddingProvider.create({
           baseUrl: '',
-          model: config.defaults?.embeddings?.model || 'all-MiniLM-L6-v2'
+          model: config.defaults?.embeddings?.model || 'mxbai-embed-large'
         });
         const embeddingManager = new EmbeddingManager(db, projectId, localProvider);
 

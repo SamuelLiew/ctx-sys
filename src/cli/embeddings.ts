@@ -123,7 +123,7 @@ async function generateEmbeddings(
 
   const localProvider = await LocalEmbeddingProvider.create({
     baseUrl: '',
-    model: config.defaults?.embeddings?.model || 'all-MiniLM-L6-v2'
+    model: config.defaults?.embeddings?.model || 'mxbai-embed-large'
   });
 
   // Handle --model-upgrade: re-embed entities with vectors from a different model

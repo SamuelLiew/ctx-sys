@@ -31,9 +31,9 @@ function writeMinimalConfig(projectPath: string, output: CLIOutput): void {
   const cfg: Record<string, unknown> = {
     project: { name: path.basename(projectPath) },
     indexing: { mode: 'incremental', watch: false, ignore: ['node_modules', '.git', '.ctx-sys', 'dist', 'build'] },
-    embeddings: { provider: 'local', model: 'all-MiniLM-L6-v2' },
+    embeddings: { provider: 'local', model: 'mxbai-embed-large' },
     summarization: { enabled: false, provider: 'mock', model: 'mock' },
-    hyde: { enabled: false, model: 'all-MiniLM-L6-v2' },
+    hyde: { enabled: false, model: 'mxbai-embed-large' },
     retrieval: { default_max_tokens: 4000, strategies: ['vector', 'graph', 'fts'] },
   };
   fs.mkdirSync(path.dirname(configPath), { recursive: true });
@@ -57,7 +57,7 @@ export function createSetupCommand(output: CLIOutput = defaultOutput): Command {
         output.log('');
         output.log('  ctx-sys setup');
         output.log('');
-        output.log('  Backend: local (in-process Xenova/all-MiniLM-L6-v2)');
+        output.log('  Backend: local (in-process mxbai-embed-large)');
       }
 
       // Write config if absent.

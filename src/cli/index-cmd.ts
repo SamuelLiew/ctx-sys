@@ -333,7 +333,7 @@ async function runIndex(
       try {
         const localProvider = await LocalEmbeddingProvider.create({
           baseUrl: '',
-          model: config.defaults?.embeddings?.model || 'all-MiniLM-L6-v2'
+          model: config.defaults?.embeddings?.model || 'mxbai-embed-large'
         });
 
         // v2 F2.2: preflight before the work starts. Fail fast with a
