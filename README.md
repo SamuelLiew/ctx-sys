@@ -124,6 +124,7 @@ ctx-sys serve                     # Start MCP server
 ctx-sys watch [directory]         # Watch files and auto-reindex
 ctx-sys doctor                    # Check native modules, MLX GPU worker, and DB health
 ctx-sys setup                     # Bootstrap project configuration and verify health
+ctx-sys start                     # Interactive local AI chat client (MLX + Qwen3-Coder-30B + ctx-sys MCP)
 ```
 
 ### Key flags

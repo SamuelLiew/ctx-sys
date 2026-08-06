@@ -24,6 +24,7 @@ import { createStatusCommand } from './status';
 import { createDoctorCommand } from './doctor';
 import { createSetupCommand } from './setup';
 import { createPipeCommand } from './pipe';
+import { createStartCommand } from './start';
 
 // Subcommand group imports
 import { createConfigCommand } from './config';
@@ -79,6 +80,7 @@ program.addCommand(createWatchCommand());
 program.addCommand(createDoctorCommand());
 program.addCommand(createSetupCommand());
 program.addCommand(createPipeCommand());
+program.addCommand(createStartCommand());
 
 // ─── Subcommand Groups ──────────────────────────────────────────────
 
