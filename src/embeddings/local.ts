@@ -59,7 +59,25 @@ async function downloadFromKaggle(): Promise<string> {
   return downloadedPath;
 }
 
-function installModelFiles(sourceDir: string, targetDir: string): void {
+async function extractZipFiles(dir: string): Promise<void> {
+  if (!fs.existsSync(dir)) return;
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      await extractZipFiles(fullPath);
+    } else if (entry.name.endsWith('.zip')) {
+      console.error(`[ctx-sys] Extracting zip file: ${entry.name}`);
+      try {
+        await execAsync(`unzip -o "${fullPath}" -d "${dir}"`);
+      } catch (err: any) {
+        console.error(`[ctx-sys] Failed to unzip ${entry.name}: ${err.message}`);
+      }
+    }
+  }
+}
+
+async function installModelFiles(sourceDir: string, targetDir: string): Promise<void> {
   fs.mkdirSync(targetDir, { recursive: true });
 
   const entries = fs.readdirSync(sourceDir, { withFileTypes: true });
@@ -68,20 +86,28 @@ function installModelFiles(sourceDir: string, targetDir: string): void {
     const src = path.join(sourceDir, entry.name);
     const dst = path.join(targetDir, entry.name);
 
-    if (fs.existsSync(dst)) continue; // idempotent
-
     if (entry.isDirectory()) {
-      fs.cpSync(src, dst, { recursive: true });
+      if (!fs.existsSync(dst)) {
+        fs.cpSync(src, dst, { recursive: true });
+      }
     } else {
-      fs.copyFileSync(src, dst);
+      if (!fs.existsSync(dst)) {
+        fs.copyFileSync(src, dst);
+      }
     }
   }
+
+  // Automatically unpack any .zip files present (e.g. model.onnx.zip)
+  await extractZipFiles(targetDir);
 
   console.error(`[ctx-sys] Model installed at: ${targetDir}`);
 }
 
 async function ensureModelAvailable(): Promise<string> {
   const modelDir = getModelDir();
+
+  // First check if target modelDir is ready (including zip extraction)
+  await extractZipFiles(modelDir);
 
   if (modelIsReady(modelDir)) {
     return modelDir;
@@ -102,7 +128,7 @@ async function ensureModelAvailable(): Promise<string> {
     sourceDir = candidates[0];
   }
 
-  installModelFiles(sourceDir, modelDir);
+  await installModelFiles(sourceDir, modelDir);
 
   if (!modelIsReady(modelDir)) {
     throw new Error(
@@ -136,13 +162,12 @@ export async function embed(
       } catch (err: any) {
         throw new Error(
           `Failed to load embedder "${model}" from ${modelDir}.\n` +
-          `@xenova/transformers requires ONNX weights (onnx/model_quantized.onnx or onnx/model.onnx).\n` +
+          `@xenova/transformers requires ONNX weights (onnx/model_quantized.onnx or onnx/model.onnx or model.onnx).\n` +
           `Error: ${err.message}`
         );
       }
     })();
 
-    // Store promise in map so concurrent or subsequent calls reuse the same initialization
     embedderPromises.set(model, loadPromise);
   }
 
@@ -151,7 +176,6 @@ export async function embed(
     const out = await embedder(texts, { pooling: 'mean', normalize: true });
     return out.tolist ? out.tolist() : out.map((o: any) => Array.from(o.data));
   } catch (err) {
-    // Keep failed promise in map or remove if caller wants to re-attempt, but prevent loop per batch
     throw err;
   }
 }
