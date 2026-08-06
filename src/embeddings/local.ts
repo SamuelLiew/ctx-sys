@@ -165,8 +165,113 @@ function meanPool(
   return embeddings;
 }
 
+let mpsSupported: boolean | null = null;
+let pythonBin = 'python3';
+let workerProcess: any = null;
+let workerReadLine: any = null;
+let pendingResolves: Array<{ resolve: (v: number[][]) => void; reject: (err: any) => void }> = [];
+
+async function checkMpsSupport(): Promise<boolean> {
+  if (mpsSupported !== null) return mpsSupported;
+  const script = path.join(process.cwd(), 'scripts', 'embed.py');
+  if (!fs.existsSync(script)) {
+    mpsSupported = false;
+    return false;
+  }
+
+  const candidates = [
+    '/Library/Frameworks/Python.framework/Versions/3.11/bin/python3',
+    'python3',
+  ];
+
+  for (const bin of candidates) {
+    try {
+      const { stdout } = await execAsync(`"${bin}" "${script}" --check`);
+      const mode = stdout.trim();
+      if (mode === 'mps' || mode === 'cuda') {
+        pythonBin = bin;
+        mpsSupported = true;
+        console.error(`[ctx-sys] Enabled Metal GPU acceleration (${mode.toUpperCase()}) on M1 Max!`);
+        return true;
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  mpsSupported = false;
+  return false;
+}
+
+async function getWorker(): Promise<any> {
+  if (workerProcess) return workerProcess;
+
+  const script = path.join(process.cwd(), 'scripts', 'embed.py');
+  const { spawn } = await import('child_process');
+  const readline = await import('readline');
+
+  return new Promise((resolve, reject) => {
+    const child = spawn(pythonBin, [script], {
+      env: { ...process.env, CTXSYS_MODEL_PATH: getModelsBasePath() }
+    });
+
+    const rl = readline.createInterface({ input: child.stdout });
+    let isReady = false;
+
+    rl.on('line', (line: string) => {
+      const trimmed = line.trim();
+      if (!isReady) {
+        if (trimmed === 'READY') {
+          isReady = true;
+          workerProcess = child;
+          workerReadLine = rl;
+          resolve(child);
+        }
+        return;
+      }
+
+      const pending = pendingResolves.shift();
+      if (!pending) return;
+
+      try {
+        const data = JSON.parse(trimmed);
+        if (data && data.error) {
+          pending.reject(new Error(data.error));
+        } else {
+          pending.resolve(data);
+        }
+      } catch (err) {
+        pending.reject(err);
+      }
+    });
+
+    child.on('error', (err: any) => {
+      if (!isReady) reject(err);
+      for (const p of pendingResolves) p.reject(err);
+      pendingResolves = [];
+      workerProcess = null;
+    });
+
+    child.on('exit', (code: number) => {
+      if (!isReady) reject(new Error(`Worker exited before READY with code ${code}`));
+      for (const p of pendingResolves) p.reject(new Error(`Worker exited with code ${code}`));
+      pendingResolves = [];
+      workerProcess = null;
+    });
+  });
+}
+
 export async function embed(texts: string[]): Promise<number[][]> {
   const modelDir = await ensureModelAvailable();
+
+  const useMps = await checkMpsSupport();
+  if (useMps) {
+    const worker = await getWorker();
+    return new Promise<number[][]>((resolve, reject) => {
+      pendingResolves.push({ resolve, reject });
+      worker.stdin.write(JSON.stringify(texts) + '\n');
+    });
+  }
 
   if (!session) {
     const ort = await import('onnxruntime-node');
