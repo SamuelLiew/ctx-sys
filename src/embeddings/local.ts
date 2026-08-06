@@ -175,8 +175,12 @@ export async function embed(texts: string[]): Promise<number[][]> {
     console.error(`[ctx-sys] Loading ONNX session: ${path.basename(modelPath)}`);
     console.error(`[ctx-sys] This may take 2–3 minutes for large models on first load...`);
 
+    const epList = process.env.CTXSYS_ONNX_EP
+      ? process.env.CTXSYS_ONNX_EP.split(',').map(s => s.trim())
+      : ['cuda', 'cpu'];
+
     session = await ort.InferenceSession.create(modelPath, {
-      executionProviders: ['cpu'],
+      executionProviders: epList,
       graphOptimizationLevel: 'all',
       intraOpNumThreads: Math.max(1, os.cpus().length),
       interOpNumThreads: Math.max(1, os.cpus().length),
