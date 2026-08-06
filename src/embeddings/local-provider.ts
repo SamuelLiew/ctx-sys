@@ -35,7 +35,7 @@ export class LocalEmbeddingProvider implements EmbeddingProvider {
 
   async embed(text: string, options?: EmbedOptions): Promise<number[]> {
     const truncated = text.length > this.maxChars ? text.slice(0, this.maxChars) : text;
-    const embeddings = await localEmbed([truncated], this.config.model);
+    const embeddings = await localEmbed([truncated]);
     if (!embeddings?.[0]) {
       throw new Error(`Local embedder returned empty embedding for model ${this.config.model}`);
     }
@@ -53,14 +53,14 @@ export class LocalEmbeddingProvider implements EmbeddingProvider {
       );
 
       try {
-        const embeddings = await localEmbed(batch, this.config.model);
+        const embeddings = await localEmbed(batch);
         results.push(...embeddings);
         completed += batch.length;
       } catch {
         // Fallback: one-by-one
         for (const text of batch) {
           try {
-            const single = await localEmbed([text], this.config.model);
+            const single = await localEmbed([text]);
             results.push(single[0]);
           } catch {
             results.push(new Array(this.dimensions).fill(0));
