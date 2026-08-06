@@ -480,8 +480,7 @@ export const DEFAULT_PROJECT_CONFIG_FILE: ProjectConfigFile = {
     strategies: ['vector', 'graph', 'fts']
   },
   hyde: {
-    // v2 F1.2: explicit opt-in; same small model as summarization.
     enabled: false,
-    model: 'gemma3:270m'
+    model: 'gpt-4o-mini'
   }
 };

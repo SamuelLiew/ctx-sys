@@ -11,6 +11,7 @@ export interface AssembleContextOptions {
   type?: string;
   sources?: boolean;
   expand?: boolean;
+  appContext?: AppContext;
 }
 
 export async function assembleContext(query: string, options: AssembleContextOptions = {}): Promise<any> {
@@ -19,8 +20,11 @@ export async function assembleContext(query: string, options: AssembleContextOpt
   const config = await configManager.resolve(projectPath);
 
   const dbPath = options.db || config.database.path;
-  const appContext = new AppContext(dbPath);
-  await appContext.initialize();
+  const ownsContext = !options.appContext;
+  const appContext = options.appContext || new AppContext(dbPath);
+  if (ownsContext) {
+    await appContext.initialize();
+  }
 
   try {
     const projectId = config.projectConfig.project.name || path.basename(projectPath);
@@ -38,6 +42,8 @@ export async function assembleContext(query: string, options: AssembleContextOpt
 
     return result;
   } finally {
-    await appContext.close();
+    if (ownsContext) {
+      await appContext.close();
+    }
   }
 }
