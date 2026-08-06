@@ -16,12 +16,13 @@ Requirements:
 import os
 import sys
 import asyncio
+import importlib.util
 
 # ─── Dependency guard ────────────────────────────────────────────────
 def _require(*pkgs):
     missing = []
     for p in pkgs:
-        spec = __import__("importlib.util").find_spec(p)
+        spec = importlib.util.find_spec(p)
         if spec is None:
             missing.append(p)
     if missing:
