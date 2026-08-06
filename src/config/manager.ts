@@ -409,7 +409,7 @@ export class ConfigManager {
         watch: false,
         content: 'both',
         git_hooks: true,
-        ignore: ['node_modules', '.git', '.ctx-sys', 'dist', 'build']
+        ignore: ['node_modules', '.git', '.ctx-sys', 'dist', 'build', 'models']
       },
       summarization: {
         enabled: false,
@@ -461,7 +461,7 @@ export const DEFAULT_PROJECT_CONFIG_FILE: ProjectConfigFile = {
     watch: false,
     content: 'both',
     git_hooks: true,
-    ignore: ['node_modules', '.git', '.ctx-sys', 'dist', 'build']
+    ignore: ['node_modules', '.git', '.ctx-sys', 'dist', 'build', 'models']
   },
   summarization: {
     enabled: false,

@@ -183,10 +183,10 @@ export async function embed(texts: string[]): Promise<number[][]> {
     const { AutoTokenizer, env } = await import('@xenova/transformers');
     env.allowLocalModels = true;
     env.allowRemoteModels = false;
-    env.localModelPath = getModelsBasePath();
+    env.localModelPath = '';
 
-    console.error(`[ctx-sys] Loading tokenizer for ${MODEL_NAME} from ${getModelsBasePath()}...`);
-    tokenizer = await AutoTokenizer.from_pretrained(MODEL_NAME, { local_files_only: true });
+    console.error(`[ctx-sys] Loading tokenizer from ${modelDir}...`);
+    tokenizer = await AutoTokenizer.from_pretrained(modelDir, { local_files_only: true });
     console.error(`[ctx-sys] Tokenizer ready.`);
   }
 

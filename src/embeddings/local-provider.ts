@@ -43,7 +43,7 @@ export class LocalEmbeddingProvider implements EmbeddingProvider {
   }
 
   async embedBatch(texts: string[], options?: BatchOptions & EmbedOptions): Promise<number[][]> {
-    const batchSize = options?.batchSize || 10;
+    const batchSize = options?.batchSize || 50;
     const results: number[][] = [];
     let completed = 0;
 
