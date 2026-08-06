@@ -139,6 +139,17 @@ export class EmbeddingManager {
     `);
 
     this.db.exec(createVecTable(this.projectId, this.provider.dimensions));
+
+    // After createVecTable call, verify dimensions match
+    const vecInfo = this.db.get<{ sql: string }>(
+      "SELECT sql FROM sqlite_master WHERE type='table' AND name=?",
+      [this.vecTable]
+    );
+    if (vecInfo?.sql && !vecInfo.sql.includes(`float[${this.provider.dimensions}]`)) {
+      // Drop and recreate with correct dimensions
+      this.db.exec(`DROP TABLE ${this.vecTable}`);
+      this.db.exec(createVecTable(this.projectId, this.provider.dimensions));
+    }
   }
 
   /**
