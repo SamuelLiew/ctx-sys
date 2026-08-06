@@ -38,44 +38,19 @@ from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
 # ─── Config ──────────────────────────────────────────────────────────
-DATASET = os.environ.get("CTXSYS_MODEL", "coolgamerz/qwen3-coder-30b")
+DATASET = "coolgamerz/qwen3-coder-30b"
 CTX_SYS_CMD = os.environ.get("CTXSYS_CLI_BIN", "ctx-sys")
 CTX_SYS_ARGS = ["serve"]
 
 # ─── 1. Model check / download ───────────────────────────────────────
 def ensure_model() -> str:
     """Download via kagglehub if not cached; return local path."""
-    model_spec = DATASET
-
-    # If it's already a valid local path or directory, use it directly
-    if os.path.exists(model_spec):
-        print(f"[chat] Using local model path: {model_spec}", file=sys.stderr)
-        return model_spec
-
-    print(f"[chat] Checking for model '{model_spec}'...", file=sys.stderr)
-
-    try:
-        if "/" in model_spec:
-            parts = model_spec.split("/")
-            if len(parts) == 4:
-                path = kagglehub.model_download(model_spec)
-            elif len(parts) == 2:
-                try:
-                    path = kagglehub.dataset_download(model_spec)
-                except Exception:
-                    path = kagglehub.model_download(f"{model_spec}/other/default")
-            else:
-                path = kagglehub.model_download(model_spec)
-
-            if path and os.path.exists(path):
-                print(f"[chat] Model ready at: {path}", file=sys.stderr)
-                return path
-    except Exception as e:
-        print(f"[chat] Error: Failed to download model '{model_spec}': {e}", file=sys.stderr)
-        sys.exit(1)
-
-    print(f"[chat] Error: Model path missing or invalid: {model_spec}", file=sys.stderr)
-    sys.exit(1)
+    print("[chat] Checking for Qwen3-Coder-30B...", file=sys.stderr)
+    path = kagglehub.dataset_download(DATASET)
+    if not os.path.exists(path):
+        raise RuntimeError(f"Model path missing after download: {path}")
+    print(f"[chat] Model ready at: {path}", file=sys.stderr)
+    return path
 
 # ─── 2. MLX LLM wrapper ──────────────────────────────────────────────
 class MLXChat:
