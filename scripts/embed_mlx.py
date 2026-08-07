@@ -33,7 +33,7 @@ if __name__ == "__main__":
     import mlx.core as mx
     import kagglehub
 
-    EMBED_DATASET = os.environ.get("CTXSYS_EMBED_MODEL", "coolgamerz/mxbai-embed-large-mlx")
+    EMBED_DATASET = os.environ.get("CTXSYS_EMBED_MODEL", "coolgamerz/mxbai-embed-large")
 
     sys.stderr.write(f"[ctx-sys] Loading MLX embedding model from Kaggle: {EMBED_DATASET}...\n")
     model_path = kagglehub.dataset_download(EMBED_DATASET)

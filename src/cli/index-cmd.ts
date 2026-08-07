@@ -327,7 +327,8 @@ async function runIndex(
             batchSize,
             onProgress: (completed: number, total: number, skipped: number) => {
               if (!options.quiet) {
-                output.log(`  Progress: ${totalProcessed + completed}/${totalProcessed + total} processed (${totalEmbedded + (completed - skipped)} embedded, ${totalSkipped + skipped} skipped)`);
+                const currentEmbedded = Math.max(0, completed - skipped);
+                output.log(`  Progress: ${totalProcessed + completed}/${totalProcessed + total} processed (${totalEmbedded + currentEmbedded} embedded, ${totalSkipped + skipped} skipped)`);
               }
             }
           });
