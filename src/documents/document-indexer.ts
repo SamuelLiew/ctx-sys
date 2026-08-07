@@ -73,7 +73,6 @@ const EXTENSION_MAP: Record<string, DocumentType> = {
   '.csproj': 'xml',
   '.fsproj': 'xml',
   '.vbproj': 'xml',
-  '.pdf': 'pdf',
 };
 
 /**
@@ -82,7 +81,7 @@ const EXTENSION_MAP: Record<string, DocumentType> = {
  * or config files (json/yaml/toml/xml/csv). `.rst` has no dedicated parser and
  * is indexed as plain text. Override via `indexing.doc_extensions`.
  */
-export const PROSE_DOC_EXTENSIONS = ['.md', '.mdx', '.txt', '.rst', '.pdf'];
+export const PROSE_DOC_EXTENSIONS = ['.md', '.mdx', '.txt', '.rst'];
 
 export class DocumentIndexer {
   private markdownParser: MarkdownParser;
@@ -102,26 +101,6 @@ export class DocumentIndexer {
     const absolutePath = path.resolve(filePath);
     const ext = path.extname(absolutePath).toLowerCase();
     const docType = EXTENSION_MAP[ext] || 'text';
-
-    // PDF needs binary reading
-    if (docType === 'pdf') {
-      const buffer = await fs.promises.readFile(absolutePath);
-      const hash = crypto.createHash('md5').update(buffer).digest('hex');
-
-      const existing = await this.entityStore.getByQualifiedName(absolutePath);
-      if (existing && existing.metadata?.hash === hash) {
-        return {
-          documentId: existing.id,
-          entitiesCreated: 0,
-          relationshipsCreated: 0,
-          crossDocLinks: 0,
-          embeddingsGenerated: 0,
-          skipped: true,
-        };
-      }
-
-      return this.indexPdf(absolutePath, buffer, hash);
-    }
 
     const content = await fs.promises.readFile(absolutePath, 'utf-8');
     const hash = crypto.createHash('md5').update(content).digest('hex');
@@ -809,80 +788,6 @@ export class DocumentIndexer {
     }
 
     return { documentId: docEntity.id, entitiesCreated, relationshipsCreated, crossDocLinks, embeddingsGenerated: 0 };
-  }
-
-  private async indexPdf(
-    filePath: string,
-    buffer: Buffer,
-    hash: string
-  ): Promise<DocumentIndexResult> {
-    // v2 F2.3: route every PDF through the pluggable extractor + the
-    // content-addressed cache so re-extracting the same PDF is a no-op
-    // and swapping Tier 1 → Tier 2 (heading detection + better reading
-    // order) is a config flip rather than a code change. The cache
-    // lives next to the project's database directory so it follows the
-    // existing 'state goes in .ctx-sys/' convention.
-    const { resolveExtractor, extractWithCache } = await import('./pdf-extractor.js');
-    const extractor = resolveExtractor('auto');
-    // Cache root sits under .ctx-sys/ next to the project so it follows
-    // the existing 'all engine state lives in .ctx-sys/' convention.
-    // The cache is content-addressed (sha256 of buffer + extractor name)
-    // so multi-project use is safe.
-    const cacheRoot = path.join(process.cwd(), '.ctx-sys');
-    const pdf = await extractWithCache(buffer, extractor, cacheRoot);
-
-    let entitiesCreated = 0;
-    let relationshipsCreated = 0;
-    const name = path.basename(filePath);
-    const title = (pdf.metadata.title as string | undefined) || name;
-    const author = pdf.metadata.author as string | undefined;
-    const pageCount = pdf.metadata.pageCount;
-
-    const docEntity = await this.entityStore.upsert({
-      type: 'document',
-      name: title,
-      qualifiedName: filePath,
-      // Cap content at 100KB to keep the entity row reasonable; the
-      // per-page sections below carry the full text in chunks.
-      content: pdf.fullText.slice(0, 100000),
-      summary: `PDF: ${title} — ${pageCount} pages${author ? ` by ${author}` : ''}`,
-      filePath,
-      metadata: {
-        ...pdf.metadata,
-        hash,
-        docType: 'pdf',
-        pageCount,
-        cacheHit: pdf.cacheHit,
-        extractor: extractor.name,
-      },
-    });
-    entitiesCreated++;
-
-    // Create section entities for each page (when the extractor
-    // preserved page boundaries — Tier 1 + Tier 2 do; Tier 3 may not).
-    for (const page of pdf.pages ?? []) {
-      if (page.text.length < 50) continue;
-
-      const pageEntity = await this.entityStore.upsert({
-        type: 'section',
-        name: `${title} - Page ${page.pageNumber}`,
-        qualifiedName: `${filePath}::page-${page.pageNumber}`,
-        content: page.text,
-        summary: `Page ${page.pageNumber} of ${title}`,
-        filePath,
-        metadata: { hash, docType: 'pdf', pageNumber: page.pageNumber },
-      });
-      entitiesCreated++;
-
-      await this.relationshipStore.upsert({
-        sourceId: docEntity.id,
-        targetId: pageEntity.id,
-        relationship: 'CONTAINS',
-      });
-      relationshipsCreated++;
-    }
-
-    return { documentId: docEntity.id, entitiesCreated, relationshipsCreated, crossDocLinks: 0, embeddingsGenerated: 0 };
   }
 
   private async indexPlainText(
