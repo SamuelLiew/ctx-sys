@@ -8,6 +8,8 @@ writes line-delimited JSON arrays of float embeddings to stdout.
 import sys
 import os
 
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
 # Auto-add user site-packages if missing
 user_site = os.path.expanduser("~/Library/Python/3.11/lib/python/site-packages")
 if os.path.exists(user_site) and user_site not in sys.path:

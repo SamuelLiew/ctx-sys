@@ -18,6 +18,8 @@ import sys
 import asyncio
 import importlib.util
 
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
 # ─── Dependency guard ────────────────────────────────────────────────
 def _require(*pkgs):
     missing = []
@@ -102,7 +104,8 @@ async def chat_loop(session: ClientSession, llm: MLXChat):
 
     while True:
         try:
-            user_input = input("You: ").strip()
+            raw_input = await asyncio.to_thread(input, "You: ")
+            user_input = raw_input.strip()
         except (EOFError, KeyboardInterrupt):
             print("\n[chat] Goodbye.")
             break
@@ -138,9 +141,9 @@ Answer based on the context. Be concise and cite file paths."""
 
         messages.append({"role": "user", "content": user_msg})
 
-        # Generate with MLX
+        # Generate with MLX in executor thread to prevent starving event loop
         print("[chat] Generating...", file=sys.stderr)
-        response = llm.generate(messages, max_tokens=2048, temperature=0.1)
+        response = await asyncio.to_thread(llm.generate, messages, 2048, 0.1)
 
         print(f"\nAssistant: {response}\n")
         messages.append({"role": "assistant", "content": response})

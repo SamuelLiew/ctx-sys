@@ -83,7 +83,7 @@ async function getMlxWorker(): Promise<any> {
 
   return new Promise((resolve, reject) => {
     const child = spawn(pythonBin, [script], {
-      env: { ...process.env, CTXSYS_MODEL_PATH: getModelsBasePath() }
+      env: { ...process.env, CTXSYS_MODEL_PATH: getModelsBasePath(), TOKENIZERS_PARALLELISM: 'false' }
     });
 
     const rl = readline.createInterface({ input: child.stdout });
