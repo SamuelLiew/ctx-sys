@@ -47,10 +47,7 @@ async function checkMlxSupport(): Promise<boolean> {
     throw new Error(`MLX worker script missing at ${script}`);
   }
 
-  const candidates = [
-    '/Library/Frameworks/Python.framework/Versions/3.11/bin/python3',
-    'python3',
-  ];
+  const candidates = process.env.PYTHON ? [process.env.PYTHON, 'python3'] : ['python3'];
 
   for (const bin of candidates) {
     try {
