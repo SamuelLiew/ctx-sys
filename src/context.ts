@@ -2,7 +2,7 @@ import * as path from 'path';
 import { DatabaseConnection } from './db/connection';
 import { ProjectManager, ProjectConfig } from './project';
 import { EntityStore } from './entities';
-import { EmbeddingManager, EmbeddingProviderFactory, EmbeddingProvider, MockEmbeddingProvider, LocalEmbeddingProvider } from './embeddings';
+import { EmbeddingManager, EmbeddingProviderFactory, EmbeddingProvider, LocalEmbeddingProvider } from './embeddings';
 import { warmup as warmupLocalEmbeddings } from './embeddings/local';
 import { Logger, consoleLogger } from './utils/logger';
 

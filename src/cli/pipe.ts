@@ -1,8 +1,7 @@
 import { Command } from 'commander';
 import * as readline from 'readline';
-import { searchHybrid } from '../search/hybrid';
-import { assembleContext } from '../search/context';
 import { AppContext } from '../context';
+import { RetrievalService } from '../services/retrieval-service';
 
 export function createPipeCommand(): Command {
   return new Command('pipe')
@@ -11,6 +10,7 @@ export function createPipeCommand(): Command {
       const appContext = new AppContext();
       await appContext.initialize();
 
+      const retrievalService = new RetrievalService(appContext);
       const rl = readline.createInterface({ input: process.stdin, crlfDelay: Infinity });
 
       try {
@@ -25,10 +25,11 @@ export function createPipeCommand(): Command {
           }
 
           try {
-            const opts = { ...req, appContext };
-            const result = req.action === 'context'
-              ? await assembleContext(req.query, opts)
-              : await searchHybrid(req.query, opts);
+            const projectId = req.project || 'default';
+            const result = await retrievalService.queryContext(projectId, req.query, {
+              maxTokens: req.maxTokens || 4000,
+              expand: req.expand ?? true,
+            });
             console.log(JSON.stringify({ ok: true, data: result }));
           } catch (e: any) {
             console.log(JSON.stringify({ ok: false, error: e.message }));

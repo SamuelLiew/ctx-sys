@@ -3,8 +3,8 @@
 /**
  * ctx-sys CLI — Intelligent context management for AI coding assistants.
  *
- * Core commands: init, index, search, context, status, serve, watch
- * Subcommand groups: entity, graph, embed, summarize, session, config, debug, kb, instruction
+ * Core commands: init, index, search, context, status, serve, doctor, setup, pipe, start
+ * Subcommand groups: entity, graph, embed, config
  */
 
 import { Command } from 'commander';
