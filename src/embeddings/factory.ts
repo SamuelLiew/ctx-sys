@@ -10,14 +10,13 @@ export class EmbeddingProviderFactory {
    * Create an embedding provider from configuration.
    */
   static async create(config: ProviderConfig): Promise<EmbeddingProvider> {
-    switch (config.provider) {
-      case 'local':
-      default:
-        return LocalEmbeddingProvider.create({
-          baseUrl: '',
-          model: config.model || 'mxbai-embed-large'
-        });
+    if (config.provider === 'local') {
+      return LocalEmbeddingProvider.create({
+        baseUrl: '',
+        model: config.model || 'mxbai-embed-large'
+      });
     }
+    throw new Error(`Only local provider is supported. Received: ${config.provider}`);
   }
 
   /**

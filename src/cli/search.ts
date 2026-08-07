@@ -118,7 +118,7 @@ async function runSearch(
           }
         }
       } catch (err) {
-        // Graceful fallback to keyword search if Ollama unavailable
+        // Graceful fallback to keyword search if local embedder unavailable
         if (!options.quiet) {
           output.log(`Semantic search unavailable, falling back to keyword search`);
           output.log(`  (${err instanceof Error ? err.message : String(err)})\n`);

@@ -14,10 +14,7 @@ export interface ModelIdentifier {
 }
 
 /**
- * v2 F2.2: rich provider-health shape. Every backend (Ollama,
- * OpenAI-compatible, OpenAI, llama.cpp) reports the same status enum
- * with the same recovery fields, so doctor / preflight / error
- * messages don't need per-backend branches.
+ * v2: Provider health status shape. Reports status enum with recovery fields.
  */
 export interface ProviderHealth {
   status: 'ok' | 'unreachable' | 'model_missing' | 'auth_failed' | 'unknown';
@@ -78,6 +75,4 @@ export interface EmbeddingRow {
 export interface ProviderConfig {
   provider: 'local' | 'mock';
   model: string;
-  baseUrl?: string;
-  apiKey?: string;
 }
