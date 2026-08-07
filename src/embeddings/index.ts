@@ -14,5 +14,3 @@ export {
   ProviderConfig,
   ProviderHealth
 } from './types';
-export { preflightProvider, PreflightOptions } from './preflight';
-export { withLoadingIndicator, LoadingIndicatorOptions } from './loading-indicator';

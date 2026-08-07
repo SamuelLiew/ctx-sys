@@ -1,9 +1,9 @@
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 
 /**
- * Generate a unique identifier using UUID v4
+ * Generate a unique identifier using crypto.randomUUID()
  */
 export function generateId(prefix?: string): string {
-  const id = uuidv4();
+  const id = randomUUID();
   return prefix ? `${prefix}_${id}` : id;
 }

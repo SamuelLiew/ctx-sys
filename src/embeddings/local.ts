@@ -140,3 +140,12 @@ export async function embed(texts: string[]): Promise<number[][]> {
     worker.stdin.write(JSON.stringify(texts) + '\n');
   });
 }
+
+export async function warmup(): Promise<void> {
+  try {
+    await checkMlxSupport();
+    await getMlxWorker();
+  } catch {
+    // Warmup failure is non-fatal; first embed() call will retry
+  }
+}

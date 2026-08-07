@@ -154,7 +154,7 @@ export async function runGitSync(
 
     // Code pipeline (skipped in docs-only mode).
     if (content !== 'docs') {
-      const indexer = new CodebaseIndexer(projectPath, entityStore, undefined, undefined, relationshipStore);
+      const indexer = new CodebaseIndexer(projectPath, entityStore, undefined, relationshipStore);
       if (goingFull) {
         await indexer.updateIndex({});
       } else if (changedFiles.length > 0) {

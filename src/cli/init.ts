@@ -7,7 +7,6 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { ConfigManager, DEFAULT_PROJECT_CONFIG_FILE } from '../config';
 import { writeMcpRegistrations } from './init-mcp';
-import { writeGitHooks } from './init-git-hooks';
 
 /**
  * v2 F1.1: seed `.ctxignore` content written by `ctx-sys init`.
@@ -208,12 +207,7 @@ async function initProjectConfig(
     await writeMcpRegistrations(projectPath, output, { name: options.mcpName, force: options.force });
   }
 
-  // v2 F2.0: install the post-* git hooks so the index stays in sync
-  // with the working tree across checkout / pull / rebase. Default on;
-  // --no-git-hooks opts out.
-  if (options.gitHooks !== false) {
-    writeGitHooks(projectPath, output, { force: options.force });
-  }
+  // v2 F2.0: git hooks removed.
 
   output.log('');
   output.log('Next steps:');

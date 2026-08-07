@@ -5,6 +5,7 @@ import type { Readable, Writable } from 'node:stream';
 import { AppContext } from '../context';
 import { ToolRegistry, Tool } from './tool-registry';
 import { CtxError } from '../errors';
+import { warmup as warmupEmbeddings } from '../embeddings/local';
 
 /**
  * MCP Server configuration.
@@ -50,6 +51,7 @@ export class CtxSysMcpServer {
   async initialize(): Promise<void> {
     if (this.initialized) return;
 
+    warmupEmbeddings().catch(() => {}); // fire-and-forget, non-fatal
     await this.context.initialize();
     this.registerTools();
     this.initialized = true;

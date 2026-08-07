@@ -1,4 +1,12 @@
-import { FileSummary } from '../summarization';
+export interface FileSummary {
+  filePath: string;
+  language: string;
+  description: string;
+  symbols: any[];
+  exports: string[];
+  dependencies: string[];
+  metrics: any;
+}
 
 /**
  * File status in the index.

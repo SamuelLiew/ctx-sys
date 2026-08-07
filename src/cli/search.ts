@@ -9,7 +9,6 @@ import { DatabaseConnection } from '../db/connection';
 import { EntityStore, Entity, EntityType } from '../entities';
 import { EmbeddingManager } from '../embeddings/manager';
 import { LocalEmbeddingProvider } from '../embeddings';
-import { HyDEQueryExpander, MockHypotheticalProvider } from '../retrieval';
 import { CLIOutput, defaultOutput } from './init';
 
 /**
@@ -31,22 +30,15 @@ export function createSearchCommand(output: CLIOutput = defaultOutput): Command 
     .option('-l, --limit <n>', 'Maximum number of results', '10')
     .option('-t, --type <type>', 'Filter by entity type (function, class, file, etc.)')
     .option('--no-semantic', 'Keyword search only (no embeddings)')
-    .option('--hyde', 'Use HyDE (Hypothetical Document Embeddings) for better semantic search', false)
     .option('--threshold <n>', 'Minimum similarity score for semantic search', '0.3')
     .option('--format <format>', 'Output format (text, json)', 'text')
     .option('-d, --db <path>', 'Custom database path')
     .addHelpText('after', `
 Examples:
   ctx-sys search "auth middleware"          # hybrid: vector + keyword
-  ctx-sys search "ssl handshake" --hyde     # HyDE-enhanced semantic search
   ctx-sys search "TODO" --no-semantic       # keyword-only
   ctx-sys search "logger" --type function   # filter by entity type
   ctx-sys search "..." --format json        # machine-readable output
-
-HyDE (--hyde): generates a hypothetical answer first, embeds *that*,
-then searches. Better for conceptual questions; costs one extra LLM
-call. Requires the configured 'hyde.model' to be available (default
-gemma3:270m after v2 F1.2).
 
 See also:
   ctx-sys context "..."  # assembled context with source attribution
@@ -74,7 +66,6 @@ async function runSearch(
     limit?: string;
     type?: string;
     semantic?: boolean;
-    hyde?: boolean;
     threshold?: string;
     format?: string;
     db?: string;
@@ -100,7 +91,7 @@ async function runSearch(
 
     const useSemantic = options.semantic !== false;
 
-    if (useSemantic || options.hyde) {
+    if (useSemantic) {
       // Vector similarity search using embeddings (default: on)
       try {
         const localProvider = await LocalEmbeddingProvider.create({
@@ -112,31 +103,11 @@ async function runSearch(
         const threshold = parseFloat(options.threshold || '0.3');
         let similar;
 
-        if (options.hyde) {
-          // HyDE: generate hypothetical answer, embed that instead
-          const hydeProvider = new MockHypotheticalProvider();
-          const hyde = new HyDEQueryExpander(hydeProvider, embeddingManager);
-
-          const { embedding, usedHyDE, hypothetical } = await hyde.getSearchEmbedding(
-            query, projectId, { entityTypes: options.type ? [options.type] : undefined }
-          );
-
-          if (usedHyDE) {
-            output.log(`HyDE hypothetical: "${hypothetical?.slice(0, 120)}..."\n`);
-          }
-
-          similar = await embeddingManager.findSimilarByVector(embedding, {
-            limit,
-            threshold,
-            entityTypes: options.type ? [options.type] : undefined
-          });
-        } else {
-          similar = await embeddingManager.findSimilar(query, {
-            limit,
-            threshold,
-            entityTypes: options.type ? [options.type] : undefined
-          });
-        }
+        similar = await embeddingManager.findSimilar(query, {
+          limit,
+          threshold,
+          entityTypes: options.type ? [options.type] : undefined
+        });
 
         // Resolve entities for each result
         results = [];

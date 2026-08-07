@@ -1,6 +1,6 @@
 import * as path from 'path';
 import { ParseResult, ImportStatement, Symbol } from '../ast';
-import { FileSummary } from '../summarization';
+import { FileSummary } from '../indexer/types';
 import {
   Relationship,
   RelationshipType,

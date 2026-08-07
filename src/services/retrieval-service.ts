@@ -7,8 +7,7 @@ import { EntityType } from '../entities/types';
 import { RelationshipStore } from '../graph';
 import {
   MultiStrategySearch, ContextAssembler, SearchResult,
-  ContextExpander, RetrievalGate, QueryDecomposer, HyDEQueryExpander,
-  MockHypotheticalProvider
+  ContextExpander
 } from '../retrieval';
 import { GraphTraversal } from '../graph';
 import { QueryOptions, ContextResult } from './types';
@@ -60,46 +59,9 @@ export class RetrievalService {
   }
 
   async queryContext(projectId: string, query: string, options?: QueryOptions): Promise<ContextResult> {
-    if (options?.gate) {
-      const gate = new RetrievalGate();
-      const decision = await gate.shouldRetrieve({ query });
-      if (!decision.shouldRetrieve) {
-        return {
-          context: '',
-          sources: [],
-          confidence: 0,
-          tokensUsed: 0,
-          truncated: false
-        };
-      }
-    }
-
     const searchService = await this.getSearchService(projectId);
 
     let queryEmbedding: number[] | undefined;
-    if (options?.hyde) {
-      try {
-        const project = await this.context.projectManager.get(projectId);
-        const embeddingManager = await this.context.getEmbeddingManager(projectId, project?.config);
-        const hydeProvider = new MockHypotheticalProvider();
-        const hyde = new HyDEQueryExpander(hydeProvider, embeddingManager);
-        const result = await hyde.getSearchEmbedding(query, projectId, {
-          entityTypes: options?.includeTypes
-        });
-        if (result.usedHyDE) {
-          const quickCheck = await embeddingManager.findSimilarByVector(result.embedding, {
-            limit: 1,
-            entityTypes: options?.includeTypes?.map(t => t as string)
-          });
-
-          if (quickCheck.length > 0 && quickCheck[0].score >= 0.3) {
-            queryEmbedding = result.embedding;
-          }
-        }
-      } catch {
-        // HyDE failed — fall back to normal search
-      }
-    }
 
     const maxResults = options?.maxResults ?? 15;
 
@@ -111,32 +73,7 @@ export class RetrievalService {
     };
 
     let results: SearchResult[];
-    if (options?.decompose) {
-      const decomposer = new QueryDecomposer();
-      const decomposed = decomposer.decompose(query);
-
-      if (decomposed.wasDecomposed) {
-        const allResults = new Map<string, SearchResult>();
-        for (const sub of decomposed.subQueries) {
-          const subResults = await searchService.search(sub.text, {
-            ...searchOpts,
-            limit: 10
-          });
-          for (const r of subResults) {
-            const existing = allResults.get(r.entity.id);
-            const weighted = r.score * sub.weight;
-            if (!existing || weighted > existing.score) {
-              allResults.set(r.entity.id, { ...r, score: existing ? Math.max(existing.score, weighted) : weighted });
-            }
-          }
-        }
-        results = Array.from(allResults.values()).sort((a, b) => b.score - a.score).slice(0, maxResults);
-      } else {
-        results = await searchService.search(query, searchOpts);
-      }
-    } else {
-      results = await searchService.search(query, searchOpts);
-    }
+    results = await searchService.search(query, searchOpts);
 
     if (options?.expand && results.length > 0) {
       const entityStore = this.context.getEntityStore(projectId);

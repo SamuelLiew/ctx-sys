@@ -114,10 +114,6 @@ async function runContext(
       minScore,
       expand: options.expand,
       expandTokens,
-      decompose: options.decompose,
-      gate: options.gate,
-      hyde: options.hyde,
-      hydeModel: options.hydeModel,
       maxResults: options.maxResults ? parseInt(options.maxResults, 10) : undefined
     });
 

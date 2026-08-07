@@ -35,7 +35,7 @@ export class IndexingService {
       const entityStore = this.context.getEntityStore(projectId);
       const relationshipStore = this.getRelationshipStore(projectId);
       this.indexers.set(projectId, new CodebaseIndexer(
-        projectPath, entityStore, undefined, undefined, relationshipStore
+        projectPath, entityStore, undefined, relationshipStore
       ));
     }
     return this.indexers.get(projectId)!;

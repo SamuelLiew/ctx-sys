@@ -362,11 +362,7 @@ export class ToolRegistry {
           includeSources: a.include_sources ?? true,
           minScore: a.min_score,
           expand: a.expand ?? true,
-          expandTokens: a.expand_tokens,
-          decompose: a.decompose,
-          gate: a.gate ?? true,
-          hyde: a.hyde,
-          hydeModel: a.hyde_model,
+          expandTokens: a.expand_tokens
         });
         return {
           success: true,

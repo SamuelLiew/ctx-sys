@@ -10,11 +10,6 @@ import os
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
-# Auto-add user site-packages if missing
-user_site = os.path.expanduser("~/Library/Python/3.11/lib/python/site-packages")
-if os.path.exists(user_site) and user_site not in sys.path:
-    sys.path.insert(0, user_site)
-
 import json
 
 def check_mlx():
@@ -36,12 +31,17 @@ if __name__ == "__main__":
 
     from mlx_embeddings.utils import load
     import mlx.core as mx
+    import kagglehub
 
-    # Use the pre-converted MLX community model, or allow override via env
-    model_name = os.environ.get("CTXSYS_MLX_MODEL", "mlx-community/mxbai-embed-large-v1")
+    EMBED_DATASET = os.environ.get("CTXSYS_EMBED_MODEL", "coolgamerz/mxbai-embed-large-mlx")
 
-    sys.stderr.write(f"[ctx-sys] Loading MLX embedding model: {model_name}...\n")
-    model, tokenizer = load(model_name)
+    sys.stderr.write(f"[ctx-sys] Loading MLX embedding model from Kaggle: {EMBED_DATASET}...\n")
+    model_path = kagglehub.dataset_download(EMBED_DATASET)
+    if not os.path.exists(model_path):
+        sys.stderr.write(f"Error: Model path missing after download: {model_path}\n")
+        sys.exit(1)
+
+    model, tokenizer = load(model_path)
     sys.stderr.write("[ctx-sys] MLX model ready.\n")
 
     sys.stdout.write("READY\n")

@@ -4,9 +4,9 @@ import * as crypto from 'crypto';
 import { ASTParser, ParseResult, defaultRegistry as relationshipRegistry } from '../ast';
 import { ParseResultLike } from '../ast/relationships/types';
 import { GraphRelationshipType } from '../graph/types';
-import { SymbolSummarizer, FileSummary } from '../summarization';
 import { EntityStore, Entity, EntityType } from '../entities';
 import { RelationshipStore } from '../graph/relationship-store';
+import { FileSummary } from './types';
 import {
   IndexedFile,
   IndexStats,
@@ -37,7 +37,6 @@ function mapAstRelToGraph(astType: string): GraphRelationshipType | null {
  */
 export class CodebaseIndexer {
   private parser: ASTParser;
-  private summarizer: SymbolSummarizer;
   private entityStore?: EntityStore;
   private relationshipStore?: RelationshipStore;
   private projectRoot: string;
@@ -47,14 +46,12 @@ export class CodebaseIndexer {
     projectRoot: string,
     entityStore?: EntityStore,
     parser?: ASTParser,
-    summarizer?: SymbolSummarizer,
     relationshipStore?: RelationshipStore
   ) {
     this.projectRoot = path.resolve(projectRoot);
     this.entityStore = entityStore;
     this.relationshipStore = relationshipStore;
     this.parser = parser || new ASTParser();
-    this.summarizer = summarizer || new SymbolSummarizer();
   }
 
   /**
@@ -195,7 +192,25 @@ export class CodebaseIndexer {
     }
 
     const parseResult = await this.parser.parseFile(absolutePath);
-    const summary = await this.summarizer.summarizeFile(parseResult);
+    const summary = {
+      filePath: relativePath,
+      language: parseResult.language,
+      description: "",
+      symbols: parseResult.symbols.map(s => ({
+        name: s.name,
+        type: s.type,
+        qualifiedName: s.qualifiedName,
+        description: "",
+        location: { startLine: s.startLine, endLine: s.endLine },
+        signature: "",
+        parameters: [],
+        returnType: "",
+        visibility: "public"
+      })),
+      exports: [],
+      dependencies: parseResult.imports.map(i => i.source),
+      metrics: {}
+    };
 
     // Update index map
     const content = await fs.promises.readFile(absolutePath, 'utf-8');
@@ -325,11 +340,10 @@ export class CodebaseIndexer {
         continue;
       }
 
-      // Search in symbols
       const hasMatch = summary.symbols.some(
-        s =>
+        (s: any) =>
           s.name.toLowerCase().includes(lowerQuery) ||
-          s.description.toLowerCase().includes(lowerQuery)
+          (s.description && s.description.toLowerCase().includes(lowerQuery))
       );
 
       if (hasMatch) {

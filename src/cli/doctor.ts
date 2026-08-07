@@ -29,10 +29,10 @@ export async function checkLocalEmbedder(): Promise<CheckResult> {
     if (result && result[0] && result[0].length === 1024) {
       return { name: 'Local Embedder', status: 'ok', detail: 'mxbai-embed-large (1024 dims)' };
     }
-    return { name: 'Local Embedder', status: 'fail', detail: 'Unexpected embedding output', fix: 'Reinstall: npm install @xenova/transformers' };
+    return { name: 'Local Embedder', status: 'fail', detail: 'Unexpected embedding output', fix: 'Run: pip install mlx mlx-embeddings kagglehub' };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    return { name: 'Local Embedder', status: 'fail', detail: `Failed to load: ${msg}`, fix: 'Reinstall: npm install @xenova/transformers' };
+    return { name: 'Local Embedder', status: 'fail', detail: `Failed to load: ${msg}`, fix: 'Run: pip install mlx mlx-embeddings kagglehub' };
   }
 }
 

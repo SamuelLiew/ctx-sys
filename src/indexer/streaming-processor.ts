@@ -6,8 +6,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { ASTParser, ParseResult } from '../ast';
-import { SymbolSummarizer, FileSummary } from '../summarization';
 import { IgnoreResolver } from './ignore-resolver';
+import { FileSummary } from './types';
 
 /**
  * State for resumable indexing.
@@ -54,7 +54,6 @@ export class StreamingFileProcessor {
   private state: IndexingState;
   private stateFile: string;
   private parser: ASTParser;
-  private summarizer: SymbolSummarizer;
   private projectRoot: string;
   private files: string[] = [];
 
@@ -65,7 +64,6 @@ export class StreamingFileProcessor {
     this.projectRoot = path.resolve(projectRoot);
     this.stateFile = path.join(this.projectRoot, '.ctx-sys', 'indexing-state.json');
     this.parser = new ASTParser();
-    this.summarizer = new SymbolSummarizer();
     this.state = this.createInitialState();
   }
 
@@ -161,7 +159,25 @@ export class StreamingFileProcessor {
     // Read and parse
     const sourceCode = await fs.promises.readFile(absolutePath, 'utf-8');
     const parseResult = await this.parser.parseFile(absolutePath);
-    const summary = await this.summarizer.summarizeFile(parseResult);
+    const summary: FileSummary = {
+      filePath: relativePath,
+      language: parseResult.language,
+      description: "",
+      symbols: parseResult.symbols.map(s => ({
+        name: s.name,
+        type: s.type,
+        qualifiedName: s.qualifiedName,
+        description: "",
+        location: { startLine: s.startLine, endLine: s.endLine },
+        signature: "",
+        parameters: [],
+        returnType: "",
+        visibility: "public"
+      })),
+      exports: [],
+      dependencies: parseResult.imports.map(i => i.source),
+      metrics: {}
+    };
 
     // Limit entities per file
     const maxEntities = this.options.maxEntitiesPerFile || 100;

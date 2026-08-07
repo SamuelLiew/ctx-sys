@@ -175,52 +175,67 @@ export class MultiStrategySearch {
       ? parsed.keywords.join(' ')
       : parsed.normalizedQuery;
 
-    if (searchQuery) {
+    const ftsPromise = async () => {
+      if (!searchQuery) return [];
+      const res: RawResult[] = [];
       const ftsResults = await this.entityStore.search(searchQuery, {
         type: options.entityTypes.length === 1 ? options.entityTypes[0] : undefined,
         limit: options.limit * 2
       });
-
-      // FTS doesn't give scores, use rank-based scoring
       for (let i = 0; i < ftsResults.length; i++) {
-        results.push({
+        res.push({
           entityId: ftsResults[i].id,
           score: 1 / (i + 1),
           source: 'keyword'
         });
       }
-    }
+      return res;
+    };
 
-    // Search for exact entity mentions
-    for (const mention of parsed.entityMentions) {
-      const exactMatches = await this.entityStore.search(mention.text, {
-        limit: 5
-      });
-
-      for (const match of exactMatches) {
-        // Boost exact matches
-        results.push({
-          entityId: match.id,
-          score: 1.5,
-          source: 'keyword'
+    const mentionPromise = async () => {
+      const res: RawResult[] = [];
+      for (const mention of parsed.entityMentions) {
+        const exactMatches = await this.entityStore.search(mention.text, {
+          limit: 5
         });
+        for (const match of exactMatches) {
+          res.push({
+            entityId: match.id,
+            score: 1.5,
+            source: 'keyword'
+          });
+        }
       }
-    }
+      return res;
+    };
 
-    // F10c.7: Search with expanded/synonym terms at lower weight
-    if (parsed.expandedTerms.length > 0) {
-      const expandedQuery = parsed.expandedTerms.join(' ');
-      const expandedResults = await this.entityStore.search(expandedQuery, {
-        limit: Math.floor(options.limit / 2)
-      });
-      for (let i = 0; i < expandedResults.length; i++) {
-        results.push({
-          entityId: expandedResults[i].id,
-          score: 0.5 / (i + 1),
-          source: 'keyword'
+    const expandedPromise = async () => {
+      const res: RawResult[] = [];
+      if (parsed.expandedTerms.length > 0) {
+        const expandedQuery = parsed.expandedTerms.join(' ');
+        const expandedResults = await this.entityStore.search(expandedQuery, {
+          limit: Math.floor(options.limit / 2)
         });
+        for (let i = 0; i < expandedResults.length; i++) {
+          res.push({
+            entityId: expandedResults[i].id,
+            score: 0.5 / (i + 1),
+            source: 'keyword'
+          });
+        }
       }
-    }
+      return res;
+    };
+
+    const [ftsResults, mentionResults, expandedResults] = await Promise.all([
+      ftsPromise(),
+      mentionPromise(),
+      expandedPromise()
+    ]);
+
+    results.push(...ftsResults);
+    results.push(...mentionResults);
+    results.push(...expandedResults);
 
     return results;
   }

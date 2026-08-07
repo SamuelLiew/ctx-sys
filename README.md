@@ -32,7 +32,7 @@ ctx-sys focuses strictly on retrieval. Conversational/session memory is intentio
 - **Node.js 20+** (`>=20.0.0`)
 - **Python 3 + MLX** (for Apple Silicon GPU embeddings):
   ```bash
-  pip install mlx mlx-embeddings
+  pip install mlx mlx-embeddings kagglehub
   ```
 
 ### 2. Index your project
@@ -52,7 +52,7 @@ This parses your code with tree-sitter, generates 1024-dim embeddings via native
 ```bash
 ctx-sys search "how does authentication work"     # hybrid search (semantic + keyword)
 ctx-sys context "error handling in the API layer" # assembled context with expansion
-ctx-sys search "database connection pooling" --hyde
+
 ```
 
 ### 4. Connect to your AI assistant
@@ -132,7 +132,6 @@ ctx-sys search <query>            # Hybrid search (semantic + keyword)
 ctx-sys context <query>           # Assembled context with expansion
 ctx-sys status [directory]        # Project info and health checks
 ctx-sys serve                     # Start MCP server
-ctx-sys watch [directory]         # Watch files and auto-reindex
 ctx-sys doctor                    # Check native modules, MLX GPU worker, and DB health
 ctx-sys setup                     # Bootstrap project configuration and verify health
 ctx-sys start                     # Interactive local AI chat client (MLX + Qwen3-Coder-30B + ctx-sys MCP)
@@ -149,7 +148,7 @@ ctx-sys index --no-embed          # Skip embedding generation
 ctx-sys index --force             # Re-index everything from scratch
 
 # Search
-ctx-sys search "query" --hyde     # HyDE conceptual search
+
 ctx-sys search "query" --limit 20
 ctx-sys search "query" --no-semantic  # Keyword-only
 
@@ -160,26 +159,6 @@ ctx-sys context "query" --no-expand
 
 ---
 
-## What is HyDE (Hypothetical Document Embeddings)?
-
-**HyDE** is a retrieval technique designed to solve the **query-document asymmetry problem**. 
-
-When a user asks a high-level conceptual question (e.g. *"How does session authentication work?"*), the query string looks very different from the code snippets or documentation chunks that actually implement or explain session authentication. Direct vector similarity between short questions and dense code blocks can lead to missed matches.
-
-### How HyDE Works in `ctx-sys`
-
-1. **Hypothetical Document Generation**: When `--hyde` is enabled, `ctx-sys` first generates a *hypothetical code snippet or explanation* answering the query.
-2. **Dense Vector Search on Hypothetical Code**: Instead of embedding the user's short query directly, `ctx-sys` embeds the **hypothetical answer**.
-3. **Nearest Neighbor Search**: Vector search compares the embedding of the hypothetical response against indexed code entities and document chunks in SQLite (`vec0`).
-4. **Improved Recall**: Because the hypothetical answer shares structure, terminology, and patterns with real implementation code, nearest-neighbor retrieval yields significantly higher semantic recall for abstract or conceptual queries.
-
-```text
-User Query: "How does connection retry logic work?"
-       ↓ (HyDE Expander)
-Generated Hypothetical Answer:
-  "class ConnectionManager { async connectWithRetry(retries = 3) { ... } }"
-       ↓ (Embed Hypothetical Answer)
-Vector Search against Database → Matches actual ConnectionManager implementation code!
 ```
 
 ---

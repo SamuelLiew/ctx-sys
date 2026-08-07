@@ -381,54 +381,14 @@ export class ConfigManager {
    * Default global configuration.
    */
   private defaultGlobalConfig(): GlobalConfig {
-    return {
-      database: {
-        path: join(homedir(), '.ctx-sys', 'ctx-sys.db')
-      },
-      providers: {
-      },
-      defaults: {
-        summarization: { provider: 'mock', model: 'mock' },
-        embeddings: { provider: 'local', model: 'mxbai-embed-large' }
-      },
-      cli: {
-        colors: true,
-        progress: true
-      }
-    };
+    return DEFAULT_GLOBAL_CONFIG;
   }
 
   /**
    * Default project configuration.
    */
   private defaultProjectConfigFile(): ProjectConfigFile {
-    return {
-      project: { name: 'unnamed' },
-      indexing: {
-        mode: 'incremental',
-        watch: false,
-        content: 'both',
-        git_hooks: true,
-        ignore: ['node_modules', '.git', '.ctx-sys', 'dist', 'build', 'models']
-      },
-      summarization: {
-        enabled: false,
-        provider: 'mock',
-        model: 'mock'
-      },
-      embeddings: {
-        provider: 'local',
-        model: 'mxbai-embed-large'
-      },
-      retrieval: {
-        default_max_tokens: 4000,
-        strategies: ['vector', 'graph', 'fts']
-      },
-      hyde: {
-        enabled: false,
-        model: 'mxbai-embed-large'
-      }
-    };
+    return DEFAULT_PROJECT_CONFIG_FILE;
   }
 }
 

@@ -264,17 +264,8 @@ export class EmbeddingManager {
     const threshold = options?.threshold || 0.0;
     const buf = this.vectorToBuffer(embedding);
 
-    // Check if there are any vectors to search
-    const vecCount = this.db.get<{ count: number }>(
-      `SELECT COUNT(*) as count FROM ${this.vectorMetaTable}`
-    );
-    if (!vecCount || vecCount.count === 0) return [];
-
     // Over-fetch to handle model/type filtering and multi-chunk dedup
-    const fetchLimit = Math.min(
-      vecCount.count,
-      (options?.entityTypes?.length ? limit * 5 : limit) * 3
-    );
+    const fetchLimit = Math.min(1000, limit * 3);
 
     const rows = this.db.all<{ entity_id: string; model_id: string; distance: number }>(
       `SELECT m.entity_id, m.model_id, v.distance

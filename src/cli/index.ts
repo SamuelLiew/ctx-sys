@@ -19,7 +19,6 @@ import { createInitCommand } from './init';
 import { createIndexCommand } from './index-cmd';
 import { createSearchCommand } from './search';
 import { createContextCommand } from './context';
-import { createWatchCommand } from './watch';
 import { createStatusCommand } from './status';
 import { createDoctorCommand } from './doctor';
 import { createSetupCommand } from './setup';
@@ -45,21 +44,7 @@ import {
   createEmbedStatusCommand,
   createEmbedCleanupCommand
 } from './embeddings';
-import {
-  createSummarizeCommand,
-  createSummarizeStatusCommand,
-  createProvidersCommand
-} from './summarize';
 import { createExtractRelCommand } from './extract-rel-cmd';
-import { createKBCommand } from './kb';
-import { createInstructionCommand } from './instructions';
-import {
-  createInspectCommand,
-  createQueryCommand,
-  createExportCommand,
-  createImportCommand,
-  createHealthCommand
-} from './debug';
 
 const program = new Command();
 
@@ -76,7 +61,6 @@ program.addCommand(createSearchCommand());
 program.addCommand(createContextCommand());
 program.addCommand(createStatusCommand());
 program.addCommand(createServeCommand());
-program.addCommand(createWatchCommand());
 program.addCommand(createDoctorCommand());
 program.addCommand(createSetupCommand());
 program.addCommand(createPipeCommand());
@@ -111,32 +95,8 @@ embedGroup.addCommand(createEmbedStatusCommand());
 embedGroup.addCommand(createEmbedCleanupCommand());
 program.addCommand(embedGroup);
 
-// summarize: run, status, providers
-const summarizeGroup = new Command('summarize')
-  .description('LLM-powered entity summarization');
-summarizeGroup.addCommand(createSummarizeCommand());
-summarizeGroup.addCommand(createSummarizeStatusCommand());
-summarizeGroup.addCommand(createProvidersCommand());
-program.addCommand(summarizeGroup);
-
 // config
 program.addCommand(createConfigCommand());
-
-// debug: inspect, query, export, import, health
-const debugGroup = new Command('debug')
-  .description('Database debugging and maintenance tools');
-debugGroup.addCommand(createInspectCommand());
-debugGroup.addCommand(createQueryCommand());
-debugGroup.addCommand(createExportCommand());
-debugGroup.addCommand(createImportCommand());
-debugGroup.addCommand(createHealthCommand());
-program.addCommand(debugGroup);
-
-// kb (knowledge base)
-program.addCommand(createKBCommand());
-
-// instruction (team instructions)
-program.addCommand(createInstructionCommand());
 
 // Parse arguments
 program.parse();

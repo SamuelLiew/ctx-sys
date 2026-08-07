@@ -7,7 +7,6 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { CodebaseIndexer, IndexOptions, IndexResult } from '../indexer';
 import { runGitSync } from '../indexer/git-sync';
-import { writeGitHooks, removeGitHooks } from './init-git-hooks';
 import { ConfigManager } from '../config';
 import { DatabaseConnection } from '../db/connection';
 import { ProjectManager } from '../project';
@@ -15,7 +14,6 @@ import { EntityStore } from '../entities';
 import { RelationshipStore } from '../graph/relationship-store';
 import { EmbeddingManager } from '../embeddings/manager';
 import { LocalEmbeddingProvider } from '../embeddings';
-import { preflightProvider, withLoadingIndicator } from '../embeddings';
 import { DocumentIndexer, PROSE_DOC_EXTENSIONS } from '../documents/document-indexer';
 import { InvalidInputError } from '../errors';
 import { CLIOutput, defaultOutput } from './init';
@@ -107,28 +105,7 @@ async function runIndex(
   const configManager = new ConfigManager();
   const config = await configManager.resolve(projectPath);
 
-  // v2: reconcile git hooks to match indexing.git_hooks (declarative). `index`
-  // is the command users run anyway, so hook state follows config without a
-  // separate step. Only ctx-sys-managed hooks are touched; non-git dirs skip.
-  if (fs.existsSync(path.join(projectPath, '.git'))) {
-    const wantHooks = (config.projectConfig.indexing as { git_hooks?: boolean }).git_hooks !== false;
-    const capture: CLIOutput = { log: () => {}, error: (m) => output.error(m), success: () => {} };
-    if (wantHooks) {
-      const res = writeGitHooks(projectPath, capture, {});
-      if (!options.quiet && res.written.length > 0) {
-        output.success(`Installed ${res.written.length} git hook(s) (indexing.git_hooks: true).`);
-      }
-      if (!options.quiet) {
-        for (const w of res.warnings) output.log(`  git-hook: ${w.reason}`);
-      }
-    } else {
-      const res = removeGitHooks(projectPath, capture);
-      if (!options.quiet && res.removed.length > 0) {
-        output.log(`Removed ${res.removed.length} ctx-sys git hook(s) (indexing.git_hooks: false).`);
-      }
-    }
-  }
-
+  // v2: git hooks handled elsewhere or skipped.
   // Set up database connection
   const dbPath = options.db || config.database.path;
   const db = new DatabaseConnection(dbPath);
@@ -179,7 +156,7 @@ async function runIndex(
     // Index code (AST entities + relationships) unless we're in docs-only mode.
     if (content !== 'docs') {
       // Create indexer with relationship extraction
-      const indexer = new CodebaseIndexer(projectPath, entityStore, undefined, undefined, relationshipStore);
+      const indexer = new CodebaseIndexer(projectPath, entityStore, undefined, relationshipStore);
 
       // Build index options. v2 F1.1: useGitignore / useCtxignore come
       // from CLI flags first, then project config, then sensible defaults
@@ -336,11 +313,6 @@ async function runIndex(
           model: config.defaults?.embeddings?.model || 'mxbai-embed-large'
         });
 
-        // v2 F2.2: preflight before the work starts. Fail fast with a
-        // clean message instead of a deep stack trace from the first
-        // real embed call.
-        await preflightProvider(localProvider);
-
         const embeddingManager = new EmbeddingManager(db, projectId, localProvider);
 
         const batchSize = parseInt(options.embedBatchSize || '50', 10);
@@ -351,20 +323,15 @@ async function runIndex(
         let firstBatch = true;
 
         for (const page of entityStore.listPaginated({ pageSize: 500 })) {
-          // v2 F2.2: wrap the first batch with a 'Loading model'
-          // indicator. Subsequent batches don't pay the model-load
-          // cost so suppress the message.
           const runBatch = () => embeddingManager.embedIncremental(page, {
             batchSize,
-            onProgress: (completed, total, skipped) => {
+            onProgress: (completed: number, total: number, skipped: number) => {
               if (!options.quiet) {
                 output.log(`  Progress: ${totalProcessed + completed}/${totalProcessed + total} processed (${totalEmbedded + (completed - skipped)} embedded, ${totalSkipped + skipped} skipped)`);
               }
             }
           });
-          const pageResult = firstBatch
-            ? await withLoadingIndicator(localProvider.modelId, runBatch)
-            : await runBatch();
+          const pageResult = await runBatch();
           firstBatch = false;
           totalEmbedded += pageResult.embedded;
           totalSkipped += pageResult.skipped;

@@ -47,6 +47,7 @@ export class DatabaseConnection {
   private _vecAvailable: boolean = false;
   private logger: Logger;
   private stmtCache = new Map<string, Database.Statement>();
+  private readonly MAX_STMT_CACHE = 200;
 
   constructor(dbPath: string, options?: { logger?: Logger }) {
     this.dbPath = dbPath;
@@ -154,6 +155,10 @@ export class DatabaseConnection {
     if (!stmt) {
       const db = this.ensureInitialized();
       stmt = db.prepare(sql);
+      if (this.stmtCache.size >= this.MAX_STMT_CACHE) {
+        const firstKey = this.stmtCache.keys().next().value;
+        if (firstKey) this.stmtCache.delete(firstKey);
+      }
       this.stmtCache.set(sql, stmt);
     }
     return stmt;
