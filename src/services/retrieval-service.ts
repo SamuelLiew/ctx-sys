@@ -16,8 +16,18 @@ export class RetrievalService {
   private searchServices = new Map<string, MultiStrategySearch>();
   private relationshipStores = new Map<string, RelationshipStore>();
   private graphTraversals = new Map<string, GraphTraversal>();
+  private contextExpanders = new Map<string, ContextExpander>();
 
   constructor(private context: AppContext) {}
+
+  private getContextExpander(projectId: string): ContextExpander {
+    if (!this.contextExpanders.has(projectId)) {
+      const entityStore = this.context.getEntityStore(projectId);
+      const relationshipStore = this.getRelationshipStore(projectId);
+      this.contextExpanders.set(projectId, new ContextExpander(entityStore, relationshipStore));
+    }
+    return this.contextExpanders.get(projectId)!;
+  }
 
   private getRelationshipStore(projectId: string): RelationshipStore {
     if (!this.relationshipStores.has(projectId)) {
@@ -76,9 +86,7 @@ export class RetrievalService {
     results = await searchService.search(query, searchOpts);
 
     if (options?.expand && results.length > 0) {
-      const entityStore = this.context.getEntityStore(projectId);
-      const relationshipStore = this.getRelationshipStore(projectId);
-      const expander = new ContextExpander(entityStore, relationshipStore);
+      const expander = this.getContextExpander(projectId);
       results = await expander.expand(results, {
         maxExpansionTokens: options?.expandTokens || 2000
       });
@@ -125,5 +133,6 @@ export class RetrievalService {
     this.searchServices.delete(projectId);
     this.relationshipStores.delete(projectId);
     this.graphTraversals.delete(projectId);
+    this.contextExpanders.delete(projectId);
   }
 }

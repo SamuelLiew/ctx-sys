@@ -196,24 +196,26 @@ export class EmbeddingManager {
    * When chunkIndex is 0, deletes all existing chunks for this entity/model first.
    */
   private store(entityId: string, embedding: number[], contentHash?: string, chunkIndex: number = 0): void {
-    // On chunk 0, delete all existing chunks (fresh start for this entity)
-    if (chunkIndex === 0) {
-      this.deleteEntityEmbeddings(entityId);
-    }
+    this.db.transaction(() => {
+      // On chunk 0, delete all existing chunks (fresh start for this entity)
+      if (chunkIndex === 0) {
+        this.deleteEntityEmbeddings(entityId);
+      }
 
-    // Insert new metadata
-    const result = this.db.run(
-      `INSERT INTO ${this.vectorMetaTable} (entity_id, model_id, chunk_index, content_hash)
-       VALUES (?, ?, ?, ?)`,
-      [entityId, this.provider.modelId, chunkIndex, contentHash || null]
-    );
+      // Insert new metadata
+      const result = this.db.run(
+        `INSERT INTO ${this.vectorMetaTable} (entity_id, model_id, chunk_index, content_hash)
+         VALUES (?, ?, ?, ?)`,
+        [entityId, this.provider.modelId, chunkIndex, contentHash || null]
+      );
 
-    // Insert vector with matching rowid
-    const buf = this.vectorToBuffer(embedding);
-    this.db.run(
-      `INSERT INTO ${this.vecTable} (rowid, embedding) VALUES (?, ?)`,
-      [BigInt(result.lastInsertRowid), buf]
-    );
+      // Insert vector with matching rowid
+      const buf = this.vectorToBuffer(embedding);
+      this.db.run(
+        `INSERT INTO ${this.vecTable} (rowid, embedding) VALUES (?, ?)`,
+        [BigInt(result.lastInsertRowid), buf]
+      );
+    });
   }
 
   /**

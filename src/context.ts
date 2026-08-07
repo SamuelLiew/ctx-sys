@@ -3,6 +3,7 @@ import { DatabaseConnection } from './db/connection';
 import { ProjectManager, ProjectConfig } from './project';
 import { EntityStore } from './entities';
 import { EmbeddingManager, EmbeddingProviderFactory, EmbeddingProvider, MockEmbeddingProvider, LocalEmbeddingProvider } from './embeddings';
+import { warmup as warmupLocalEmbeddings } from './embeddings/local';
 import { Logger, consoleLogger } from './utils/logger';
 
 /**
@@ -36,6 +37,7 @@ export class AppContext {
    */
   async initialize(): Promise<void> {
     await this.db.initialize();
+    warmupLocalEmbeddings().catch(() => {});
   }
 
   /**
