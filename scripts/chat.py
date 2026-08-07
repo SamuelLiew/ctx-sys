@@ -36,6 +36,7 @@ _require("kagglehub", "mlx_lm", "mcp")
 
 import kagglehub
 from mlx_lm import load, generate
+from mlx_lm.sample_utils import make_sampler
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
@@ -65,12 +66,13 @@ class MLXChat:
         prompt = self.tokenizer.apply_chat_template(
             messages, tokenize=False, add_generation_prompt=True
         )
+        sampler = make_sampler(temp=temperature)
         return generate(
             self.model,
             self.tokenizer,
             prompt=prompt,
             max_tokens=max_tokens,
-            temp=temperature,
+            sampler=sampler,
             verbose=False,
         )
 
