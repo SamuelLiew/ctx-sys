@@ -70,6 +70,17 @@ In **Claude Desktop** (`~/Library/Application Support/Claude/claude_desktop_conf
 }
 ```
 
+### 5. Interactive Local AI Chat (`ctx-sys start`)
+
+For a standalone 100% local terminal chat experience, run:
+
+```bash
+# Requirements for chat: pip install kagglehub mlx_lm mcp
+ctx-sys start
+```
+
+This launches a zero-network interactive terminal assistant that queries your `ctx-sys` codebase index via MCP and generates answers locally using `Qwen3-Coder-30B` on Apple Silicon MLX GPU.
+
 ---
 
 ## Architecture & How It Works
